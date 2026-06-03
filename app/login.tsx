@@ -1,5 +1,15 @@
+import { Image } from "expo-image";
 import React, { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -7,31 +17,22 @@ export default function Login() {
 
   const handleLogin = () => {
     console.log("Logging in with:", email, password);
-    // Add your authentication logic here
   };
 
   return (
-    // KeyboardAvoidingView prevents the keyboard from hiding input fields on mobile
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1, backgroundColor: "white" }}
+      style={styles.container}
     >
-      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center", paddingHorizontal: 30 }}>
-        
-        {/* Logo Section */}
-        <View style={{ alignItems: "center", marginBottom: 20 }}>
-          <Text style={{ fontSize: 24, fontWeight: "bold", color: "#1a1a1a", marginTop: 10 }}>
-            Welcome Back
-          </Text>
-          <Text style={{ fontSize: 14, color: "#666", marginTop: 5 }}>
-            Sign in to continue
-          </Text>
-        </View>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <Image
+          source={require("../assets/images/login.jpg")}
+          style={styles.image}
+        />
 
-        {/* Form Section */}
-        <View style={{ gap: 15, width: "100%" }}>
+        <View style={styles.formContainer}>
           <View>
-            <Text style={{ fontSize: 14, fontWeight: "500", color: "#444", marginBottom: 6 }}>Email</Text>
+            <Text style={styles.label}>Email</Text>
             <TextInput
               placeholder="Enter your email"
               placeholderTextColor="#aaa"
@@ -39,74 +40,146 @@ export default function Login() {
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
-              style={{
-                borderWidth: 1,
-                borderColor: "#e0e0e0",
-                borderRadius: 12,
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-                fontSize: 16,
-                backgroundColor: "#f9f9f9",
-              }}
+              style={styles.input}
             />
           </View>
 
           <View>
-            <Text style={{ fontSize: 14, fontWeight: "500", color: "#444", marginBottom: 6 }}>Password</Text>
+            <Text style={styles.label}>Password</Text>
             <TextInput
               placeholder="Enter your password"
               placeholderTextColor="#aaa"
               value={password}
               onChangeText={setPassword}
-              secureTextEntry // Hides the password text
+              secureTextEntry
               autoCapitalize="none"
-              style={{
-                borderWidth: 1,
-                borderColor: "#e0e0e0",
-                borderRadius: 12,
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-                fontSize: 16,
-                backgroundColor: "#f9f9f9",
-              }}
+              style={styles.input}
             />
           </View>
 
-          {/* Forgot Password Link */}
-          <Pressable onPress={() => console.log("Forgot password pressed")} style={{ alignSelf: "flex-end" }}>
-            <Text style={{ color: "#007AFF", fontSize: 14, fontWeight: "500" }}>
+          <Pressable
+            onPress={() => console.log("Forgot password pressed")}
+            style={styles.forgotPasswordContainer}
+          >
+
+
+            <Text style={styles.forgotPasswordText}>
               Forgot Password?
             </Text>
           </Pressable>
         </View>
 
-        {/* Login Button */}
         <Pressable
           onPress={handleLogin}
-          style={({ pressed }) => ({
-            backgroundColor: "#007AFF",
-            paddingVertical: 14,
-            borderRadius: 25,
-            marginTop: 30,
-            opacity: pressed ? 0.8 : 1,
-            alignItems: "center",
-            width: "100%",
-          })}
+          style={({ pressed }) => [
+            styles.loginButton,
+            pressed && styles.loginButtonPressed,
+          ]}
         >
-          <Text style={{ color: "white", fontSize: 16, fontWeight: "600" }}>
-            Log In
-          </Text>
+          <Text style={styles.loginButtonText}>Log In</Text>
         </Pressable>
 
-        {/* Footer / Sign Up Link */}
-        <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 25, gap: 5 }}>
-          <Text style={{ color: "#666", fontSize: 14 }}>Don't have an account?</Text>
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            Don't have an account?
+          </Text>
           <Pressable onPress={() => console.log("Navigate to Register")}>
-            <Text style={{ color: "#007AFF", fontSize: 14, fontWeight: "600" }}>Sign Up</Text>
+            <Text style={styles.signUpText}>Sign Up</Text>
           </Pressable>
         </View>
-
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "white",
+  },
+
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingHorizontal: 30,
+  },
+
+  image: {
+    width: 350,
+    height: 350,
+    alignSelf: "center",
+  },
+
+  logoSection: {
+    marginBottom: 20,
+  },
+
+  formContainer: {
+    gap: 15,
+    width: "100%",
+  },
+
+  label: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#444",
+    marginBottom: 6,
+  },
+
+  input: {
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    backgroundColor: "#f9f9f9",
+  },
+
+  forgotPasswordContainer: {
+    alignSelf: "flex-end",
+  },
+
+  forgotPasswordText: {
+    color: "#007AFF",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+
+  loginButton: {
+    backgroundColor: "#007AFF",
+    paddingVertical: 14,
+    borderRadius: 25,
+    marginTop: 30,
+    alignItems: "center",
+    width: "100%",
+  },
+
+  loginButtonPressed: {
+    opacity: 0.8,
+  },
+
+  loginButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
+  footer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 25,
+    gap: 5,
+  },
+
+  footerText: {
+    color: "#666",
+    fontSize: 14,
+  },
+
+  signUpText: {
+    color: "#007AFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+});
