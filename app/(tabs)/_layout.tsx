@@ -47,11 +47,11 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 2. HISTORY TAB */}
+      {/* 2. TRANSACTION TAB */}
       <Tabs.Screen
-        name="history"
+        name="transaction"
         options={{
-          title: "History",
+          title: "Transaction",
           headerTitle: "Receipt Ledger",
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "receipt" : "receipt-outline"} size={24} color={color} />
@@ -63,11 +63,11 @@ export default function TabLayout() {
       <Tabs.Screen
         name="scan"
         options={{
-          title: "Scan",
+          title: "",
           headerTitle: "Scan Receipt",
           tabBarIcon: () => (
             <View style={styles.floatingScanButton}>
-              <Ionicons name="camera" size={28} color="white" />
+              <Ionicons name="scan" size={28} color="white" />
             </View>
           ),
           // Slight styling adjustments to lower the "Scan" text beneath the floating circle
