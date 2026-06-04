@@ -2,6 +2,7 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -11,6 +12,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { supabase } from "../../utils/supabase";
 
 export default function Signup() {
   const router = useRouter();
@@ -21,29 +23,66 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  // State to track loading status (disables button while processing)
+  const [loading, setLoading] = useState(false);
+
   // Independent eye-toggle states for both password fields
   const [isPasswordSecure, setIsPasswordSecure] = useState(true);
   const [isConfirmPasswordSecure, setIsConfirmPasswordSecure] = useState(true);
 
-  const handleSignup = () => {
-    if (!fullName || !email || !password || !confirmPassword) {
-      alert("Please fill in all fields");
-      return;
-    }
-    if (password !== confirmPassword) {
-      alert("Passwords do not match!");
-      return;
-    }
-    
-    console.log("Signing up with:", fullName, email, password);
-  };
-
+  // 👇 ADD THESE TWO MISSING FUNCTIONS HERE 👇
   const handleFacebookLogin = () => {
-    console.log("Facebook sign up callback initiated");
+    console.log("Facebook registration pressed");
   };
 
   const handleGoogleLogin = () => {
-    console.log("Google sign up callback initiated");
+    console.log("Google registration pressed");
+  };
+
+  const handleSignup = async () => {
+    // Basic validations
+    if (!fullName.trim() || !email.trim() || !password || !confirmPassword) {
+      Alert.alert("Validation Error", "Please fill in all fields.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert("Validation Error", "Passwords do not match!");
+      return;
+    }
+    if (password.length < 6) {
+      Alert.alert("Validation Error", "Password must be at least 6 characters long.");
+      return;
+    }
+
+    setLoading(true); // Turn loading spinner/status on
+
+    // Call Supabase Auth API
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password: password,
+      options: {
+        data: {
+          full_name: fullName.trim(), // Saves metadata inside user's profile automatically
+        },
+      },
+    });
+
+    setLoading(false); // Turn loading off
+
+    if (error) {
+      Alert.alert("Signup Failed", error.message);
+    } else {
+      Alert.alert(
+        "Account Created!",
+        "Registration successful. You can now log in!",
+        [
+          {
+            text: "OK",
+            onPress: () => router.replace("/login"), // Redirect to login page
+          },
+        ]
+      );
+    }
   };
 
   return (
@@ -155,12 +194,15 @@ export default function Signup() {
         {/* Main Sign Up Button */}
         <Pressable
           onPress={handleSignup}
+          disabled={loading} // 4. Disable the button when loading is true
           style={({ pressed }) => [
             styles.signupButton,
-            pressed && styles.signupButtonPressed,
+            (pressed || loading) && styles.signupButtonPressed, // Look faded if loading
           ]}
         >
-          <Text style={styles.signupButtonText}>Sign Up</Text>
+          <Text style={styles.signupButtonText}>
+            {loading ? "Creating Account..." : "Sign Up"} 
+          </Text>
         </Pressable>
 
         {/* Social Authentication Section */}

@@ -1,7 +1,8 @@
 import { Image } from "expo-image";
-import { useRouter } from "expo-router"; // 1. Import the router
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+  Alert, // 1. Import Alert for user feedback
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -11,16 +12,43 @@ import {
   TextInput,
   View,
 } from "react-native";
+// 2. Import your configured supabase client from your utils folder
+import { supabase } from "../../utils/supabase";
 
 export default function Login() {
-  const router = useRouter(); // 2. Initialize the router
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  // New state to toggle password visibility
+  
+  // Track loading status to disable interaction during requests
+  const [loading, setLoading] = useState(false);
   const [isPasswordSecure, setIsPasswordSecure] = useState(true);
 
-  const handleLogin = () => {
-    console.log("Logging in with:", email, password);
+  // 3. Convert handleLogin to an asynchronous function hitting Supabase Auth
+  const handleLogin = async () => {
+    if (!email.trim() || !password) {
+      Alert.alert("Error", "Please fill in all fields.");
+      return;
+    }
+
+    setLoading(true); // Turn button loading state ON
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password: password,
+    });
+
+    setLoading(false); // Turn button loading state OFF
+
+    if (error) {
+      Alert.alert("Login Failed", error.message);
+    } else {
+      console.log("Logged in successfully. User ID:", data.user?.id);
+      
+      // 4. Redirect your user to your main layout or homepage path
+      // Replace '/(tabs)' with whatever your actual main home layout path is named
+      router.replace("/home");
+    }
   };
 
   const handleFacebookLogin = () => {
@@ -38,13 +66,15 @@ export default function Login() {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         
-        {/* Header Section with Logo, Welcome Title, and Subtitle */}
+        {/* Header Section with matching styled nested text colors */}
         <View style={styles.headerContainer}>
           <Image
             source={require("../../assets/images/receipt.png")}
             style={styles.image}
           />
-          <Text style={styles.welcomeTitle}>Welcome to ReceiptLens</Text>
+          <Text style={styles.welcomeTitle}>
+            Welcome to <Text style={styles.brandBlue}>Receipt</Text><Text style={styles.brandAccent}>Lens</Text>
+          </Text>
           <Text style={styles.welcomeSubtitle}>Snap, track, and manage your expenses instantly.</Text>
         </View>
 
@@ -65,14 +95,13 @@ export default function Login() {
 
           <View>
             <Text style={styles.label}>Password</Text>
-            {/* Wrapper view to position the eye icon inside the input field */}
             <View style={styles.passwordInputContainer}>
               <TextInput
                 placeholder="Enter your password"
                 placeholderTextColor="#aaa"
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry={isPasswordSecure} // Controlled by our state toggle
+                secureTextEntry={isPasswordSecure}
                 autoCapitalize="none"
                 style={styles.passwordInput}
               />
@@ -83,8 +112,8 @@ export default function Login() {
                 <Image
                   source={
                     isPasswordSecure
-                      ? require("../../assets/images/eye-off.png") // Icon for hidden state
-                      : require("../../assets/images/eye.png")     // Icon for visible state
+                      ? require("../../assets/images/eye-off.png")
+                      : require("../../assets/images/eye.png")
                   }
                   style={styles.eyeIcon}
                 />
@@ -102,15 +131,18 @@ export default function Login() {
           </Pressable>
         </View>
 
-        {/* Main Log In Button */}
+        {/* Main Log In Button updated with dynamic loading state */}
         <Pressable
           onPress={handleLogin}
+          disabled={loading} // Blocker to prevent double execution requests
           style={({ pressed }) => [
             styles.loginButton,
-            pressed && styles.loginButtonPressed,
+            (pressed || loading) && styles.loginButtonPressed,
           ]}
         >
-          <Text style={styles.loginButtonText}>Log In</Text>
+          <Text style={styles.loginButtonText}>
+            {loading ? "Logging in..." : "Log In"}
+          </Text>
         </Pressable>
 
         {/* --- Social Login Section --- */}
@@ -193,6 +225,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
     letterSpacing: -0.5,
   },
+  brandBlue: {
+    color: "#007AFF",
+  },
+  brandAccent: {
+    color: "#6366F1",
+  },
   welcomeSubtitle: {
     fontSize: 14,
     fontWeight: "500",
@@ -220,7 +258,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: "#f9f9f9",
   },
-  /* Password Input specific styles to dock the eye button seamlessly */
   passwordInputContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -244,7 +281,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     resizeMode: "contain",
-    tintColor: "#8E8E93", // Soft subtle grey color matching your subtitle
+    tintColor: "#8E8E93",
   },
   forgotPasswordContainer: {
     alignSelf: "flex-end",
