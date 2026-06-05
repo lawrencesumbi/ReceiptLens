@@ -50,95 +50,123 @@ export default function ScanScreen() {
   // --- INTEGRATION FUNCTION: PROCESS WITH AI OCR ---
   const processReceiptWithAI = async (imageUrl: string, userId: string) => {
     try {
-      // NOTE: Para sa tinuod nga AI, mas maayo nga maghimo ka og Supabase Edge Function
-      // para adto nimo ibutang imong Gemini/OpenAI API key aron dili makawat sa front-end.
-      
-      // Kani nga block mao ang ehemplo sa pag-call sa imong umaabot nga Edge Function:
-      /*
+      // 1. I-call ang live Supabase Edge Function aron basahon ni Gemini ang resibo
       const { data, error } = await supabase.functions.invoke('process-receipt', {
-        body: { image_url: imageUrl }
+        body: { image_url: imageUrl },
+        headers: {
+          "X-Region": "ap-southeast-1"
+        }
       });
-      */
 
-      // 👇 MOCK AI RESPONSE (Kini ang porma sa i-return sa AI unya):
-      // Atong gi-simulate nga ang AI nakabasa og resibo gikan sa Jollibee
-      const mockAIResponse = {
-        merchant: "Jollibee Minglanilla (Scanned)",
-        amount: 458.50,
-        category: "Food & Drinks",
-        payment_method: "Cash",
-      };
+      if (error) throw error;
+      if (!data) throw new Error("Wala kay nadawat nga data gikan sa AI.");
+      if (data.error) throw new Error(data.error);
 
-      // I-save dretso ang gi-extract sa AI ngadto sa `transactions` table sa Supabase
+      console.log("Tinuod nga Data gikan sa Gemini:", data);
+
+      // 2. I-save sa database ang TINUOD nga gi-extract sa AI (gikan sa data variable)
       const { error: insertError } = await supabase
         .from("transactions")
         .insert([
           {
             user_id: userId,
-            merchant: mockAIResponse.merchant,
-            amount: mockAIResponse.amount,
-            category: mockAIResponse.category,
-            payment_method: mockAIResponse.payment_method,
-            receipt_url: imageUrl, // Gi-save ang public URL sa resibo gikan sa Storage bucket
+            merchant: data.merchant || "Unknown Merchant",
+            amount: parseFloat(data.amount) || 0,
+            category: data.category || "Utilities", // Default to Utilities para sa mga bayranan
+            payment_method: data.payment_method || "Cash",
+            receipt_url: imageUrl, 
           },
         ]);
 
       if (insertError) throw insertError;
 
+      // 3. I-pop up ang tinuod nga resulta sa screen
       Alert.alert(
         "AI OCR Success!", 
-        `Extracted:\n🛒 ${mockAIResponse.merchant}\n💰 ₱${mockAIResponse.amount.toFixed(2)}\n📂 ${mockAIResponse.category}`
+        `Extracted:\n🛒 ${data.merchant}\n💰 ₱${Number(data.amount).toFixed(2)}\n📂 ${data.category}\n💳 ${data.payment_method}`
       );
 
     } catch (error: any) {
       console.error("AI processing error:", error);
-      Alert.alert("OCR Error", "The AI failed to process and extract data from the receipt.");
+      
+      // 🛠️ DEBUG ALERT: Atong kuhaon ang tinuod nga unod sa crash gikan sa Supabase Server
+      let serverErrorMessage = "Wala kabasa ang AI sa imong resibo.";
+      
+      if (error?.context?.message) {
+        serverErrorMessage = error.context.message;
+      } else if (error?.message) {
+        serverErrorMessage = error.message;
+      } else {
+        serverErrorMessage = JSON.stringify(error);
+      }
+      
+      Alert.alert(
+        "Server Detail Error", 
+        `Kini ang tinuod nga rason sa crash:\n\n${serverErrorMessage}`
+      );
     }
   };
 
   // --- MAIN CAPTURE & UPLOAD ROUTINE ---
+  // --- MAIN CAPTURE & UPLOAD ROUTINE (FIXED BASE64 VERSION) ---
   const handleCaptureAndUpload = async () => {
     if (!cameraRef.current || isProcessing) return;
 
     try {
       setIsProcessing(true);
       
-      // 1. Pagkuha sa litrato gikan sa camera
+      // 1. Pagkuha sa litrato gikan sa camera (Gi-compress ngadto sa 0.4 para paspas)
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.6, // Gi-ubos gamit gamay para paspas i-upload sa network
+        quality: 0.4,
+        base64: true, // <-- Atong gi-force nga i-return sab ang base64 representation sa image!
       });
 
-      if (!photo?.uri) throw new Error("Failed to capture image local path.");
+      if (!photo?.uri || !photo?.base64) {
+        throw new Error("Failed to capture image or generate Base64 content.");
+      }
+
+      console.log("Photo captured successfully. Ready to decode and upload.");
 
       // 2. Pagkuha sa kasamtangang naka-login nga user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No authenticated user found.");
 
-      // 3. I-convert ang file path ngadto sa Blob para ma-upload sa Supabase
-      const response = await fetch(photo.uri);
-      const blob = await response.blob();
-
       const fileExtension = photo.uri.split('.').pop() || 'jpg';
-      const fileName = `${user.id}/${Date.now()}.${fileExtension}`; // I-grupo kada user ID ang folders sa storage
+      const fileName = `${user.id}/${Date.now()}.${fileExtension}`;
 
-      // 4. I-upload ang Blob sa Supabase "receipts" Storage Bucket
+      // 🛠️ FIX: I-import ang Buffer gikan sa "base-64" helper o mogamit og Uint8Array
+      // para ma-decode ang base64 ngadto sa ArrayBuffer nga dawat sa Supabase Storage.
+      const { decode } = require('base-64');
+      const strToBuffer = (str: string) => {
+        const binaryString = decode(str);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes.buffer;
+      };
+
+      const arrayBuffer = strToBuffer(photo.base64);
+
+      // 3. I-upload ang ArrayBuffer dretso sa Supabase "receipts" Storage Bucket
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("receipts")
-        .upload(fileName, blob, {
+        .upload(fileName, arrayBuffer, {
           contentType: `image/${fileExtension}`,
           upsert: true
         });
 
       if (uploadError) throw uploadError;
 
-      // 5. I-generate ang Public Web URL sa resibo
+      // 4. I-generate ang Public Web URL sa resibo
       const { data: { publicUrl } } = supabase.storage
         .from("receipts")
         .getPublicUrl(fileName);
 
-      console.log("Public Receipt URL:", publicUrl);
+      console.log("Public Receipt URL Generated:", publicUrl);
 
-      // 6. I-pasa ang URL ngadto sa AI para sugdan ang OCR Extraction
+      // 5. I-pasa ang URL ngadto sa AI para sugdan ang OCR Extraction
       await processReceiptWithAI(publicUrl, user.id);
 
     } catch (error: any) {
@@ -151,72 +179,74 @@ export default function ScanScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Kani self-closing tag na siya, wala nay sulod */}
       <CameraView 
         ref={cameraRef} 
         style={StyleSheet.absoluteFillObject} 
         facing={facing}
         enableTorch={flash === "on"}
-      >
-        <View style={styles.overlayContainer}>
-          
-          {/* Top Control Header Bar */}
-          <View style={styles.topBar}>
-            <Text style={styles.scanHeaderTitle}>Scan Receipt</Text>
-            <Pressable style={styles.iconActionCircle} onPress={toggleFlash} disabled={isProcessing}>
-              <Ionicons 
-                name={flash === "on" ? "flash" : "flash-off-outline"} 
-                size={20} 
-                color={flash === "on" ? "#FFCC00" : "#ffffff"} 
-              />
+      />
+
+      {/* Kani ang overlay panel, absolute position na siya sa ibabaw sa camera view */}
+      <View style={[styles.overlayContainer, StyleSheet.absoluteFillObject]}>
+        
+        {/* Top Control Header Bar */}
+        <View style={styles.topBar}>
+          <Text style={styles.scanHeaderTitle}>Scan Receipt</Text>
+          <Pressable style={styles.iconActionCircle} onPress={toggleFlash} disabled={isProcessing}>
+            <Ionicons 
+              name={flash === "on" ? "flash" : "flash-off-outline"} 
+              size={20} 
+              color={flash === "on" ? "#FFCC00" : "#ffffff"} 
+            />
+          </Pressable>
+        </View>
+
+        {/* Central Transparent Framing Box */}
+        <View style={styles.viewfinderContainer}>
+          <View style={styles.receiptTargetBox}>
+            <View style={[styles.cornerMarker, styles.topLeftCorner]} />
+            <View style={[styles.cornerMarker, styles.topRightCorner]} />
+            <View style={[styles.cornerMarker, styles.bottomLeftCorner]} />
+            <View style={[styles.cornerMarker, styles.bottomRightCorner]} />
+            
+            {isProcessing ? (
+              <View style={styles.loadingBox}>
+                <ActivityIndicator size="large" color="#007AFF" />
+                <Text style={styles.loadingText}>AI is reading receipt...</Text>
+              </View>
+            ) : (
+              <Text style={styles.guideHelperText}>Position receipt inside frame</Text>
+            )}
+          </View>
+        </View>
+
+        {/* Bottom Controls Shutter Panel Area */}
+        <View style={styles.bottomBarContainer}>
+          <View style={styles.shutterRow}>
+            <View style={styles.secondaryActionCircle} />
+
+            <Pressable 
+              style={[styles.mainShutterOuter, isProcessing && { opacity: 0.5 }]} 
+              onPress={handleCaptureAndUpload}
+              disabled={isProcessing}
+            >
+              <View style={styles.mainShutterInner}>
+                {isProcessing && <ActivityIndicator size="small" color="#007AFF" />}
+              </View>
+            </Pressable>
+
+            <Pressable 
+              style={styles.secondaryActionCircle} 
+              onPress={() => setFacing(current => current === "back" ? "front" : "back")}
+              disabled={isProcessing}
+            >
+              <Ionicons name="camera-reverse-outline" size={24} color="#ffffff" />
             </Pressable>
           </View>
-
-          {/* Central Transparent Framing Box */}
-          <View style={styles.viewfinderContainer}>
-            <View style={styles.receiptTargetBox}>
-              <View style={[styles.cornerMarker, styles.topLeftCorner]} />
-              <View style={[styles.cornerMarker, styles.topRightCorner]} />
-              <View style={[styles.cornerMarker, styles.bottomLeftCorner]} />
-              <View style={[styles.cornerMarker, styles.bottomRightCorner]} />
-              
-              {isProcessing ? (
-                <View style={styles.loadingBox}>
-                  <ActivityIndicator size="large" color="#007AFF" />
-                  <Text style={styles.loadingText}>AI is reading receipt...</Text>
-                </View>
-              ) : (
-                <Text style={styles.guideHelperText}>Position receipt inside frame</Text>
-              )}
-            </View>
-          </View>
-
-          {/* Bottom Controls Shutter Panel Area */}
-          <View style={styles.bottomBarContainer}>
-            <View style={styles.shutterRow}>
-              <View style={styles.secondaryActionCircle} />
-
-              <Pressable 
-                style={[styles.mainShutterOuter, isProcessing && { opacity: 0.5 }]} 
-                onPress={handleCaptureAndUpload}
-                disabled={isProcessing}
-              >
-                <View style={styles.mainShutterInner}>
-                  {isProcessing && <ActivityIndicator size="small" color="#007AFF" />}
-                </View>
-              </Pressable>
-
-              <Pressable 
-                style={styles.secondaryActionCircle} 
-                onPress={() => setFacing(current => current === "back" ? "front" : "back")}
-                disabled={isProcessing}
-              >
-                <Ionicons name="camera-reverse-outline" size={24} color="#ffffff" />
-              </Pressable>
-            </View>
-          </View>
-
         </View>
-      </CameraView>
+
+      </View>
     </SafeAreaView>
   );
 }
