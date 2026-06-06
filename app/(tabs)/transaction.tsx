@@ -398,7 +398,7 @@ export default function TransactionScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F8F9FA" },
   headerContainer: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 12 },
-  headerTitle: { fontSize: 28, fontWeight: "700", color: "#111111", marginBottom: 14 },
+  headerTitle: { fontSize: 28, fontWeight: "700", color: "#111111", marginBottom: 14, marginTop: 14,},
   searchBarContainer: { flexDirection: "row", alignItems: "center", backgroundColor: "#EEEEEF", borderRadius: 12, paddingHorizontal: 12, height: 44 },
   searchIcon: { marginRight: 8 },
   searchInput: { flex: 1, fontSize: 15, color: "#111111" },

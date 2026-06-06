@@ -12,27 +12,30 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: "#ffffff",
           borderTopWidth: 1,
-          borderTopColor: "#e0e0e0",
+          borderTopColor: "#f2f2f7",        // Mas humok ug subtle nga border line
           height: Platform.OS === "ios" ? 90 : 70,
           paddingBottom: Platform.OS === "ios" ? 30 : 12,
           paddingTop: 10,
+          elevation: 8,                     // Gi-stiffen gamit ang elevation shadow sa ubos
         },
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: "600",
         },
+        // 🎨 GLOBAL ULTRA-CLEAN HEADER STYLE
         headerStyle: {
-          backgroundColor: "#ffffff",
-          elevation: 0,
-          shadowOpacity: 0,
-          borderBottomWidth: 1,
-          borderBottomColor: "#f0f0f0",
+          backgroundColor: "#F8F9FA",       // Naka-match sa background scaffold sa mga screens
+          elevation: 0,                     // Tangtangon ang bug-at nga Android shadow
+          shadowOpacity: 0,                 // Tangtangon ang iOS shadow line
         },
+        headerShadowVisible: false,         // Gi-force og clear ang native layout shadow dividers
         headerTitleStyle: {
           fontWeight: "700",
-          fontSize: 18,
-          color: "#111111",
+          fontSize: 20,                     // Gi-adjust gamay para mas professional basahon
+          color: "#1C1C1E",                 // Gidala sa iOS native dark text color
+          letterSpacing: -0.5,
         },
+        headerTitleAlign: "left",           // Standard modern design pattern, haom sa custom grids
       }}
     >
       {/* 1. HOME TAB */}
@@ -40,7 +43,7 @@ export default function TabLayout() {
         name="home"
         options={{
           title: "Home",
-          headerTitle: "ReceiptLens",
+          headerShown: false,               // 🛠️ CLEAN FIX: Gi-hide kay naa nay nindot nga personal greeting header sa home.tsx
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color} />
           ),
@@ -52,7 +55,7 @@ export default function TabLayout() {
         name="transaction"
         options={{
           title: "Transaction",
-          headerTitle: "Receipt Ledger",
+          headerShown: false,               // 🛠️ CLEAN FIX: Gi-hide kay naa nay nindot nga personal greeting header sa home.tsx
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "receipt" : "receipt-outline"} size={24} color={color} />
           ),
@@ -64,13 +67,12 @@ export default function TabLayout() {
         name="scan"
         options={{
           title: "",
-          headerTitle: "Scan Receipt",
+          headerShown: false,               // 🛠️ CLEAN FIX: Gi-hide kay full screen camera immersive component man kini
           tabBarIcon: () => (
             <View style={styles.floatingScanButton}>
               <Ionicons name="scan" size={28} color="white" />
             </View>
           ),
-          // Slight styling adjustments to lower the "Scan" text beneath the floating circle
           tabBarLabelStyle: {
             fontSize: 11,
             fontWeight: "600",
@@ -84,7 +86,7 @@ export default function TabLayout() {
         name="analytics"
         options={{
           title: "Analytics",
-          headerTitle: "Spending Insights",
+          headerShown: false,               // 🛠️ CLEAN FIX: Gi-hide kay aduna nay structured header block ang analytics.tsx
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "pie-chart" : "pie-chart-outline"} size={24} color={color} />
           ),
@@ -97,6 +99,7 @@ export default function TabLayout() {
         options={{
           title: "Profile",
           headerTitle: "Account Settings",
+          headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
           ),
@@ -111,13 +114,11 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#007AFF", // Brand Blue
+    backgroundColor: "#007AFF", 
     justifyContent: "center",
     alignItems: "center",
-    // Positions the button so it sits slightly above the normal tab bar level
     position: "absolute",
     bottom: Platform.OS === "ios" ? -5 : 5,
-    // Soft shadow effect to give it depth
     shadowColor: "#007AFF",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,

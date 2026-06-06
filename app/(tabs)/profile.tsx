@@ -11,7 +11,6 @@ import {
   LayoutAnimation,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -184,11 +183,14 @@ export default function Profile() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <ScrollView 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
+        {/* 🛠️ IN-LINE HEADER TITLE (Mabalhin na inig scroll) */}
+        <Text style={styles.headerTitle}>Account Settings</Text>
+
         {/* --- Profile Header Avatar Block --- */}
         <View style={styles.profileHeaderCard}>
           <Pressable style={styles.avatarContainer} onPress={handlePickAvatar} disabled={loading}>
@@ -199,7 +201,6 @@ export default function Profile() {
                 <Ionicons name="person" size={40} color="#ffffff" />
               )}
             </View>
-            {/* Gamay nga camera badge indicator */}
             <View style={styles.cameraBadge}>
               <Ionicons name="camera" size={14} color="#ffffff" />
             </View>
@@ -368,13 +369,12 @@ export default function Profile() {
 
       </ScrollView>
 
-      {/* Inline Loading Veil Overlay */}
       {loading && (
         <View style={styles.loadingVeil}>
           <ActivityIndicator size="large" color="#007AFF" />
         </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -385,8 +385,17 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 24,
-    paddingVertical: 20,
+    // 🎨 GI-ADJUST ANG PADDING: Gihatagan og saktong dako nga top padding para sa safe spacing sa phone viewports
+    paddingTop: Platform.OS === "ios" ? 60 : 40,
     paddingBottom: 120,
+  },
+  // 🛠️ GI-RESTORE ANG TITLE STYLE NGA IN-LINE:
+  headerTitle: { 
+    fontSize: 28, 
+    fontWeight: "700", 
+    color: "#111111", 
+    marginBottom: 20,
+    letterSpacing: -0.5,
   },
   profileHeaderCard: {
     backgroundColor: "#ffffff",
@@ -408,7 +417,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#007AFF",
     justifyContent: "center",
     alignItems: "center",
-    overflow: "hidden", // Importante aron ma-crop ang image nga malingon
+    overflow: "hidden", 
   },
   avatarImage: {
     width: "100%",

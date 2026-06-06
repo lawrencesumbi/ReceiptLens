@@ -1,116 +1,169 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
-import {
-    Pressable,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View
-} from "react-native";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { supabase } from "../../utils/supabase";
 
-// Mock data structure for recent scans
-const RECENT_RECEIPTS = [
-  { id: "1", merchant: "Starbucks", date: "June 04", amount: "₱185.00", status: "Processed" },
-  { id: "2", merchant: "SM Supermarket", date: "June 03", amount: "₱2,450.50", status: "Processed" },
-  { id: "3", merchant: "Grab Car", date: "May 31", amount: "₱320.00", status: "Pending" },
-];
+interface Transaction {
+  id: string;
+  merchant: string;
+  amount: number;
+  category: string;
+  created_at: string;
+}
 
-export default function Home() {
-  const [userName, setUserName] = useState("User"); // This will eventually pull from your profiles table
+export default function HomeScreen() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState("Developer");
+  const [totalSpentThisMonth, setTotalSpentThisMonth] = useState(0);
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
 
-  const handleScanReceipt = () => {
-    console.log("Trigger camera / scan mechanics");
+  const fetchHomeData = async () => {
+    try {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // 1. I-set ang user identifier (pwedeng i-fallback gikan sa email metadata)
+      const emailName = user.email?.split("@")[0] || "User";
+      setUserName(emailName.charAt(0).toUpperCase() + emailName.slice(1));
+
+      // 2. Kuhaon ang mga transactions sa user (Gi-limit og 3 para sa Quick View)
+      const { data: transactions, error } = await supabase
+        .from("transactions")
+        .select("id, merchant, amount, category, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      if (transactions) {
+        setRecentTransactions(transactions.slice(0, 3));
+        
+        // 3. I-calculate ang total spent
+        const total = transactions.reduce((sum, item) => sum + (item.amount || 0), 0);
+        setTotalSpentThisMonth(total);
+      }
+    } catch (e) {
+      console.error("Error loading home dashboard data:", e);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    fetchHomeData();
+  }, []);
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case "Food & Drinks": return "fast-food-outline";
+      case "Utilities": return "water-outline";
+      case "Shopping": return "cart-outline";
+      case "Transportation": return "car-outline";
+      default: return "receipt-outline";
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>Loading Dashboard...</Text>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* --- Welcome Greeting Header --- */}
-        <View style={styles.welcomeSection}>
+      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        
+        {/* 1. GREETING HEADER */}
+        <View style={styles.headerRow}>
           <View>
-            <Text style={styles.greetingText}>Hello,</Text>
-            <Text style={styles.nameText}>{userName} 👋</Text>
+            <Text style={styles.subGreeting}>Welcome Back,</Text>
+            <Text style={styles.mainGreeting}>{userName}! 👋</Text>
           </View>
-          <Pressable style={styles.profileCircle}>
-            <Ionicons name="person" size={20} color="#007AFF" />
+          <Pressable style={styles.profileBadge} onPress={() => router.push("/profile")}>
+            <Ionicons name="person-circle-outline" size={32} color="#1C1C1E" />
           </Pressable>
         </View>
 
-        {/* --- Financial Summary Bento Card --- */}
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryHeader}>
-            <Text style={styles.summaryTitle}>Total Tracked This Month</Text>
-            <Ionicons name="trending-up" size={20} color="#34C759" />
+        {/* 2. BENTO MAIN WALLET / SUMMARY CARD */}
+        <View style={styles.walletCard}>
+          <View style={styles.walletHeader}>
+            <Text style={styles.walletTitle}>Monthly Expense Tracker</Text>
+            <Ionicons name="wallet-outline" size={20} color="#FFFFFF" style={{ opacity: 0.8 }} />
           </View>
-          <Text style={styles.totalAmount}>₱2,955.50</Text>
-          <Text style={styles.summaryFooter}>📈 12% less than last month</Text>
-        </View>
-
-        {/* --- Quick Actions Bento Grid Layout --- */}
-        <Text style={styles.sectionHeading}>Quick Actions</Text>
-        <View style={styles.bentoGrid}>
-          {/* Main Primary Accent Action: Scan Receipt */}
-          <Pressable 
-            onPress={handleScanReceipt} 
-            style={[styles.bentoItem, styles.scanItemLarge]}
-          >
-            <View style={styles.iconWrapperLarge}>
-              <Ionicons name="camera" size={32} color="white" />
+          <Text style={styles.walletAmount}>
+            ₱{totalSpentThisMonth.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          </Text>
+          <View style={styles.walletFooter}>
+            <View style={styles.liveIndicatorContainer}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveText}>Syncing live with Gemini AI</Text>
             </View>
-            <Text style={styles.scanItemTextLarge}>Scan Receipt</Text>
-            <Text style={styles.scanItemSubtext}>Instantly parse details via AI</Text>
-          </Pressable>
-
-          {/* Secondary Stacked Bento Blocks */}
-          <View style={styles.bentoSubGrid}>
-            <Pressable style={[styles.bentoItem, styles.smallBento]}>
-              <Ionicons name="add-circle-outline" size={24} color="#6366F1" />
-              <Text style={styles.smallBentoText}>Manual Input</Text>
-            </Pressable>
-            
-            <Pressable style={[styles.bentoItem, styles.smallBento]}>
-              <Ionicons name="pie-chart-outline" size={24} color="#FF9500" />
-              <Text style={styles.smallBentoText}>Analytics</Text>
-            </Pressable>
           </View>
         </View>
 
-        {/* --- Recent Activity Section --- */}
+        {/* 3. QUICK ACTIONS GRID SECTION */}
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <View style={styles.actionsGrid}>
+          
+          <Pressable style={styles.actionButton} onPress={() => router.push("/scan")}>
+            <View style={[styles.actionIconCircle, { backgroundColor: "#EEF7FF" }]}>
+              <Ionicons name="camera" size={24} color="#007AFF" />
+            </View>
+            <Text style={styles.actionLabel}>Scan Receipt</Text>
+          </Pressable>
+
+          <Pressable style={styles.actionButton} onPress={() => router.push("/analytics")}>
+            <View style={[styles.actionIconCircle, { backgroundColor: "#F5EEFF" }]}>
+              <Ionicons name="bar-chart" size={24} color="#5856D6" />
+            </View>
+            <Text style={styles.actionLabel}>Analytics</Text>
+          </Pressable>
+
+          <Pressable style={styles.actionButton} onPress={() => fetchHomeData()}>
+            <View style={[styles.actionIconCircle, { backgroundColor: "#EFFFFA" }]}>
+              <Ionicons name="refresh" size={24} color="#34C759" />
+            </View>
+            <Text style={styles.actionLabel}>Refresh</Text>
+          </Pressable>
+
+        </View>
+
+        {/* 4. RECENT TRANSACTIONS ACTIVITY */}
         <View style={styles.recentSectionHeader}>
-          <Text style={styles.sectionHeading}>Recent Receipts</Text>
-          <Pressable>
-            <Text style={styles.viewAllLink}>See All</Text>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <Pressable onPress={() => router.push("/analytics")}>
+            <Text style={styles.viewAllText}>View All</Text>
           </Pressable>
         </View>
 
-        <View style={styles.listContainer}>
-          {RECENT_RECEIPTS.map((item) => (
-            <View key={item.id} style={styles.receiptRow}>
-              <View style={styles.receiptLeftBlock}>
-                <View style={styles.receiptIconCircle}>
-                  <Ionicons name="document-text" size={20} color="#007AFF" />
+        {recentTransactions.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="duplicate-outline" size={44} color="#C7C7CC" />
+            <Text style={styles.emptyText}>No receipts scanned yet. Tap 'Scan Receipt' to start tracking!</Text>
+          </View>
+        ) : (
+          recentTransactions.map((item) => (
+            <View key={item.id} style={styles.transactionItemCard}>
+              <View style={styles.itemLeftGroup}>
+                <View style={styles.itemIconBox}>
+                  <Ionicons name={getCategoryIcon(item.category)} size={22} color="#48484A" />
                 </View>
-                <View>
-                  <Text style={styles.merchantText}>{item.merchant}</Text>
-                  <Text style={styles.dateText}>{item.date}</Text>
+                <View style={styles.itemMeta}>
+                  <Text style={styles.itemMerchantTitle} numberOfLines={1}>{item.merchant}</Text>
+                  <Text style={styles.itemCategorySub}>{item.category}</Text>
                 </View>
               </View>
-              <View style={styles.receiptRightBlock}>
-                <Text style={styles.amountText}>{item.amount}</Text>
-                <Text style={[
-                  styles.statusTag, 
-                  item.status === "Pending" ? styles.statusPending : styles.statusProcessed
-                ]}>
-                  {item.status}
-                </Text>
-              </View>
+              <Text style={styles.itemCostValue}>- ₱{item.amount.toFixed(2)}</Text>
             </View>
-          ))}
-        </View>
+          ))
+        )}
 
       </ScrollView>
     </SafeAreaView>
@@ -118,205 +171,82 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1, backgroundColor: "#F8F9FA" },
+  scrollContainer: { padding: 20 },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#F8F9FA" },
+  loadingText: { marginTop: 10, color: "#666", fontSize: 14 },
+
+  // Header Styling
+  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 24 },
+  subGreeting: { fontSize: 14, color: "#8E8E93", fontWeight: "500" },
+  mainGreeting: { fontSize: 26, fontWeight: "700", color: "#1C1C1E", marginTop: 2 },
+  profileBadge: { width: 40, height: 40, justifyContent: "center", alignItems: "center" },
+
+  // Wallet Card Modern Dashboard Style
+  walletCard: {
+    backgroundColor: "#007AFF", // Brand Royal Blue
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 26,
+    shadowColor: "#007AFF",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  walletHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  walletTitle: { color: "#FFFFFF", fontSize: 13, fontWeight: "600", opacity: 0.8, textTransform: "uppercase", letterSpacing: 0.5 },
+  walletAmount: { color: "#FFFFFF", fontSize: 36, fontWeight: "700", marginTop: 12, marginBottom: 16 },
+  walletFooter: { borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.15)", paddingTop: 12 },
+  liveIndicatorContainer: { flexDirection: "row", alignItems: "center" },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#34C759", marginRight: 6 },
+  liveText: { color: "#FFFFFF", fontSize: 12, fontWeight: "500", opacity: 0.9 },
+
+  // Section Layout Headers
+  sectionTitle: { fontSize: 18, fontWeight: "700", color: "#1C1C1E", marginBottom: 14 },
+  recentSectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 12 },
+  viewAllText: { fontSize: 14, color: "#007AFF", fontWeight: "600" },
+
+  // Quick Action Buttons Matrix Grid
+  actionsGrid: { flexDirection: "row", justifyContent: "space-between", marginBottom: 26, gap: 12 },
+  actionButton: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    paddingVertical: 16,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
   },
-  scrollContent: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-  },
-  welcomeSection: {
+  actionIconCircle: { width: 48, height: 48, borderRadius: 24, justifyContent: "center", alignItems: "center", marginBottom: 8 },
+  actionLabel: { fontSize: 12, fontWeight: "600", color: "#3A3A3C" },
+
+  // Feed Activity Rows Layout
+  transactionItemCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 16,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 25,
-  },
-  greetingText: {
-    fontSize: 16,
-    color: "#8E8E93",
-    fontWeight: "500",
-  },
-  nameText: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111111",
-    marginTop: 2,
-  },
-  profileCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#E1F0FF",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  summaryCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "#EAEAEA",
+    marginBottom: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 2,
-    marginBottom: 30,
+    shadowRadius: 6,
+    elevation: 1,
   },
-  summaryHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  summaryTitle: {
-    fontSize: 14,
-    color: "#666666",
-    fontWeight: "600",
-  },
-  totalAmount: {
-    fontSize: 32,
-    fontWeight: "700",
-    color: "#111111",
-    marginVertical: 12,
-    letterSpacing: -0.5,
-  },
-  summaryFooter: {
-    fontSize: 13,
-    color: "#34C759",
-    fontWeight: "600",
-  },
-  sectionHeading: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111111",
-    marginBottom: 16,
-  },
-  bentoGrid: {
-    flexDirection: "row",
-    gap: 14,
-    marginBottom: 30,
-  },
-  bentoItem: {
-    backgroundColor: "#ffffff",
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#EAEAEA",
-  },
-  scanItemLarge: {
-    flex: 1.2,
-    backgroundColor: "#007AFF", // Highlighted Brand Accent Primary Blue
-    justifyContent: "center",
-    minHeight: 150,
-  },
-  iconWrapperLarge: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  scanItemTextLarge: {
-    color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  scanItemSubtext: {
-    color: "rgba(255, 255, 255, 0.8)",
-    fontSize: 12,
-    fontWeight: "500",
-    marginTop: 4,
-  },
-  bentoSubGrid: {
-    flex: 1,
-    gap: 14,
-  },
-  smallBento: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "flex-start",
-    gap: 8,
-  },
-  smallBentoText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333333",
-  },
-  recentSectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  viewAllLink: {
-    fontSize: 14,
-    color: "#007AFF",
-    fontWeight: "600",
-  },
-  listContainer: {
-    backgroundColor: "#ffffff",
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#EAEAEA",
-    paddingVertical: 4,
-  },
-  receiptRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F4F4F4",
-  },
-  receiptLeftBlock: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  receiptIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: "#F0F7FF",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  merchantText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#111111",
-  },
-  dateText: {
-    fontSize: 12,
-    color: "#8E8E93",
-    marginTop: 2,
-  },
-  receiptRightBlock: {
-    alignItems: "flex-end",
-  },
-  amountText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#111111",
-  },
-  statusTag: {
-    fontSize: 10,
-    fontWeight: "600",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginTop: 4,
-    overflow: "hidden",
-  },
-  statusProcessed: {
-    backgroundColor: "#E8F5E9",
-    color: "#2E7D32",
-  },
-  statusPending: {
-    backgroundColor: "#FFF3E0",
-    color: "#EF6C00",
-  },
+  itemLeftGroup: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
+  itemIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: "#F2F2F7", justifyContent: "center", alignItems: "center" },
+  itemMeta: { flex: 1 },
+  itemMerchantTitle: { fontSize: 15, fontWeight: "600", color: "#1C1C1E" },
+  itemCategorySub: { fontSize: 12, color: "#8E8E93", marginTop: 2, fontWeight: "500" },
+  itemCostValue: { fontSize: 15, fontWeight: "700", color: "#FF3B30" },
+
+  // Empty Box Setup
+  emptyContainer: { backgroundColor: "#FFFFFF", borderRadius: 20, padding: 30, alignItems: "center", gap: 10 },
+  emptyText: { fontSize: 13, color: "#8E8E93", textAlign: "center", lineHeight: 18, fontWeight: "500" }
 });
