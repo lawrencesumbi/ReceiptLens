@@ -196,7 +196,7 @@ export default function Profile() {
           <Pressable style={styles.avatarContainer} onPress={handlePickAvatar} disabled={loading}>
             <View style={styles.avatarCircle}>
               {avatarUrl ? (
-                <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+                <Image source={{ uri: avatarUrl }} style={styles.avatarImage} resizeMode="cover" />
               ) : (
                 <Ionicons name="person" size={40} color="#ffffff" />
               )}
@@ -422,7 +422,6 @@ const styles = StyleSheet.create({
   avatarImage: {
     width: "100%",
     height: "100%",
-    resizeMode: "cover",
   },
   cameraBadge: {
     position: "absolute",
