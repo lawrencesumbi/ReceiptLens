@@ -1,10 +1,34 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Tabs } from "expo-router";
-import React from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { Tabs, useRouter } from "expo-router";
+import React, { useState } from "react";
+import { Dimensions, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function TabLayout() {
+  const router = useRouter();
+  
+  // 🛠️ STATES PARA SA FLOATING SPEED DIAL CONTROL
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const handleSelectManual = () => {
+    setIsMenuOpen(false);
+    
+    // Mo-navigate sa transaction.tsx ug magpasa og query parameter para sa modal
+    router.push({
+      pathname: "/transaction", // Siguroha nga husto ang ngalan sa imong file (pwedeng /transaction o kung index ba sa folder)
+      params: { openModal: "true" }
+    });
+  };
+
+  const handleSelectScan = () => {
+    setIsMenuOpen(false);
+    // Mo-navigate dretso sa imong scan camera page slot
+    router.push("/scan");
+  };
+  
   return (
+  <View style={{ flex: 1 }}>
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: "#007AFF",   // Brand Blue for active text/icons
@@ -106,23 +130,122 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    {/* ====================================================================== */}
+      {/* 🛠️ PREMIUM FLOATING FAB SYSTEM OVERLAY (NAG-REPLICATE SA IMAGE WORKFLOW) */}
+      {/* ====================================================================== */}
+
+      {/* 🛠️ DIMMED BACKDROP SCREEN COVER OVERLAY */}
+      {isMenuOpen && (
+        <Pressable style={styles.backdropDismiss} onPress={() => setIsMenuOpen(false)} />
+      )}
+
+      {/* 🛠️ SPEED DIAL VERTICAL STACK ACTIONS MENU */}
+      {isMenuOpen && (
+        <View style={styles.floatingMenuContainer}>
+          
+          {/* Option 1: Manual Input row */}
+          <View style={styles.speedDialRow}>
+            <Text style={styles.speedDialLabel}>Manual Input</Text>
+            <Pressable style={[styles.speedDialFab, { backgroundColor: "#5856D6" }]} onPress={handleSelectManual}>
+              <Ionicons name="create" size={22} color="#FFFFFF" />
+            </Pressable>
+          </View>
+
+          {/* Option 2: Automatic Scan row */}
+          <View style={styles.speedDialRow}>
+            <Text style={styles.speedDialLabel}>Scan Receipt</Text>
+            <Pressable style={[styles.speedDialFab, { backgroundColor: "#007AFF" }]} onPress={handleSelectScan}>
+              <Ionicons name="sparkles" size={22} color="#FFFFFF" />
+            </Pressable>
+          </View>
+
+        </View>
+      )}
+
+      {/* 🛠️ MAIN ANCHOR FAB "+" TRIGGER ACCENT BUTTON */}
+      <Pressable 
+        style={[styles.mainTriggerFab, isMenuOpen && styles.mainTriggerFabActive]} 
+        onPress={() => setIsMenuOpen(!isMenuOpen)}
+      >
+        <Ionicons 
+          name={isMenuOpen ? "close" : "add"} 
+          size={32} 
+          color="#FFFFFF" 
+          style={{ transform: [{ rotate: isMenuOpen ? "90deg" : "0deg" }] }}
+        />
+      </Pressable>
+  </View>
   );
 }
 
 const styles = StyleSheet.create({
-  floatingScanButton: {
+  backdropDismiss: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.6)", // Gi-dim ang tibuok screen parehas sa "floating action button.jpg"
+    zIndex: 98,
+  },
+  mainTriggerFab: {
+    position: "absolute",
+    bottom: Platform.OS === "ios" ? 24 : 12, // Gi-adjust para mosakto sa tunga sa tab bar base
+    left: "50%", // Ibalhin sa tunga sa screen
+    marginLeft: -28, // Katunga sa width (56 / 2) para perfect center
     width: 56,
     height: 56,
     borderRadius: 28,
     backgroundColor: "#007AFF", 
     justifyContent: "center",
     alignItems: "center",
-    position: "absolute",
-    bottom: Platform.OS === "ios" ? -5 : 5,
-    shadowColor: "#007AFF",
+    elevation: 10,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.3,
     shadowRadius: 6,
-    elevation: 6,
+    zIndex: 100,
+  },
+  mainTriggerFabActive: {
+    backgroundColor: "#1C1C1E", // Mo-dark ang color toggle kung open na
+  },
+  floatingMenuContainer: {
+    position: "absolute",
+    bottom: Platform.OS === "ios" ? 96 : 80, // Mosaka sa ibabaw sa main trigger button
+    left: 0,
+    right: 0,
+    alignItems: "center", // Gi-center ang main container wrapper
+    gap: 16,
+    zIndex: 99,
+  },
+  speedDialRow: {
+    flexDirection: "row", // Ibalik sa row para horizontal ang dagan sa label ug icon
+    alignItems: "center",
+    justifyContent: "center",
+    width: SCREEN_WIDTH, // Sigurohon nga full width para sa hapsay nga alignment
+    position: "relative",
+  },
+  speedDialLabel: {
+    position: "absolute",
+    right: "50%", // Magsugod sa tunga sa screen
+    marginRight: 36, // I-push pabalik sa wala (left side) aron dili ma-igo sa button (half of fab width + gap)
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "600",
+    backgroundColor: "rgba(0, 0, 0, 0.85)",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    overflow: "hidden",
+    textAlign: "right",
+  },
+  speedDialFab: {
+    // Magpabilin ni sa dead center tungod sa parent layout structure
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
 });

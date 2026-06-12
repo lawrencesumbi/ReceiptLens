@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -52,10 +53,25 @@ export default function TransactionScreen() {
   const [category, setCategory] = useState("Food & Drinks");
   const [paymentMethod, setPaymentMethod] = useState("Cash");
 
+  const params = useLocalSearchParams();
+  const router = useRouter();
+
   // Load ledger items upon screen mount
   useEffect(() => {
     fetchTransactions();
   }, []);
+
+  useEffect(() => {
+    // Kung naay nadawat nga openModal gikan sa _layout.tsx
+    if (params.openModal === "true") {
+      setIsEditing(false);
+      setModalVisible(true);
+
+      // Limpyohan nato ang URL params aron dili magsigeg open ang modal 
+      // inig balik-balik sa user ani nga screen
+      router.setParams({ openModal: undefined });
+    }
+  }, [params.openModal]);
 
   // --- BENEFIT 1: FETCH DATA FROM SUPABASE ---
   const fetchTransactions = async () => {
@@ -344,11 +360,6 @@ export default function TransactionScreen() {
           }
         />
       )}
-
-      {/* --- FLOATING ACTION BUTTON (FAB) --- */}
-      <Pressable style={styles.fabButton} onPress={() => { setIsEditing(false); setModalVisible(true); }}>
-        <Ionicons name="add" size={26} color="#ffffff" />
-      </Pressable>
 
       {/* --- DYNAMIC SLIDE FORM PANEL MODAL --- */}
       <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={closeModal}>
