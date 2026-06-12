@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "../../utils/supabase";
 
@@ -13,49 +13,80 @@ interface Transaction {
   created_at: string;
 }
 
+// 🛠️ Type para sa tracking periods
+type TrackingPeriod = "weekly" | "monthly";
+
 export default function HomeScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("Developer");
-  const [totalSpentThisMonth, setTotalSpentThisMonth] = useState(0);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [totalSpent, setTotalSpent] = useState(0);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
+  
+  // 🛠️ KINI NGA MGA BAG-ONG STATE PARA SA DROPDOWN SWITCHER
+  const [trackingPeriod, setTrackingPeriod] = useState<TrackingPeriod>("monthly");
+  const [showDropdown, setShowDropdown] = useState(false);
 
-  const fetchHomeData = async () => {
+  const fetchHomeData = async (period: TrackingPeriod = trackingPeriod) => {
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // 1. I-set ang user identifier (pwedeng i-fallback gikan sa email metadata)
+      // 1. User profile data binding
       const emailName = user.email?.split("@")[0] || "User";
-      setUserName(emailName.charAt(0).toUpperCase() + emailName.slice(1));
+      setUserName(user.user_metadata?.full_name || emailName.charAt(0).toUpperCase() + emailName.slice(1));
+      setAvatarUrl(user.user_metadata?.avatar_url || null);
 
-      // 2. Kuhaon ang mga transactions sa user (Gi-limit og 3 para sa Quick View)
+      // 2. 🛠️ PAG-CALCULATE SA TIMESTAMPS PARA SA FILTERING
+      const now = new Date();
+      let filterStartDate = new Date();
+
+      if (period === "weekly") {
+        // Kuhaon ang sinugdanan ning semanaha (ex: Sunday)
+        const currentDay = now.getDay(); 
+        filterStartDate.setDate(now.getDate() - currentDay);
+        filterStartDate.setHours(0, 0, 0, 0);
+      } else {
+        // Kuhaon ang sinugdanan ning bulana (1st day of the month)
+        filterStartDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      }
+
+      // 3. PANAWAG SA SUPABASE (Gi-filter gamit ang .gte para sa petsa)
       const { data: transactions, error } = await supabase
         .from("transactions")
         .select("id, merchant, amount, category, created_at")
         .eq("user_id", user.id)
+        .gte("created_at", filterStartDate.toISOString()) // Filter start date base sa napili
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
       if (transactions) {
+        // I-display gihapon ang pinaka-recent 3 kabuok activity logs
         setRecentTransactions(transactions.slice(0, 3));
         
-        // 3. I-calculate ang total spent
+        // I-calculate ang total base sa na-filter nga period
         const total = transactions.reduce((sum, item) => sum + (item.amount || 0), 0);
-        setTotalSpentThisMonth(total);
+        setTotalSpent(total);
       }
     } catch (e) {
-      console.error("Error loading home dashboard data:", e);
+      console.error("Error loading filtered dashboard data:", e);
     } finally {
       setLoading(false);
     }
   };
 
+  // 🛠️ Mo-trigger inig usab sa trackingPeriod state
   useEffect(() => {
-    fetchHomeData();
-  }, []);
+    fetchHomeData(trackingPeriod);
+  }, [trackingPeriod]);
+
+  const togglePeriodSelection = (period: TrackingPeriod) => {
+    setTrackingPeriod(period);
+    setShowDropdown(false);
+  };
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
@@ -67,11 +98,11 @@ export default function HomeScreen() {
     }
   };
 
-  if (loading) {
+  if (loading && !showDropdown) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading Dashboard...</Text>
+        <Text style={styles.loadingText}>Updating Data...</Text>
       </View>
     );
   }
@@ -86,24 +117,71 @@ export default function HomeScreen() {
             <Text style={styles.subGreeting}>Welcome Back,</Text>
             <Text style={styles.mainGreeting}>{userName}! 👋</Text>
           </View>
+          
           <Pressable style={styles.profileBadge} onPress={() => router.push("/profile")}>
-            <Ionicons name="person-circle-outline" size={32} color="#1C1C1E" />
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatarFallbackCircle}>
+                <Ionicons name="person" size={18} color="#ffffff" />
+              </View>
+            )}
           </Pressable>
         </View>
 
         {/* 2. BENTO MAIN WALLET / SUMMARY CARD */}
         <View style={styles.walletCard}>
           <View style={styles.walletHeader}>
-            <Text style={styles.walletTitle}>Monthly Expense Tracker</Text>
+            
+            {/* 🛠️ DROPDOWN TRIGGER BUTTON */}
+            <Pressable style={styles.dropdownTrigger} onPress={() => setShowDropdown(!showDropdown)}>
+              <Text style={styles.walletTitle}>
+                {trackingPeriod === "weekly" ? "Weekly" : "Monthly"} Expense Tracker
+              </Text>
+              <Ionicons 
+                name={showDropdown ? "chevron-up" : "chevron-down"} 
+                size={14} 
+                color="#FFFFFF" 
+                style={{ opacity: 0.9 }} 
+              />
+            </Pressable>
+
             <Ionicons name="wallet-outline" size={20} color="#FFFFFF" style={{ opacity: 0.8 }} />
           </View>
+
+          {/* 🛠️ FLOATING DROPDOWN LIST OPTION BOX */}
+          {showDropdown && (
+            <View style={styles.dropdownMenuBox}>
+              <Pressable 
+                style={[styles.dropdownItem, trackingPeriod === "weekly" && styles.activeDropdownItem]}
+                onPress={() => togglePeriodSelection("weekly")}
+              >
+                <Ionicons name="calendar-outline" size={16} color={trackingPeriod === "weekly" ? "#007AFF" : "#48484A"} />
+                <Text style={[styles.dropdownItemText, trackingPeriod === "weekly" && styles.activeDropdownItemText]}>Weekly Tracking</Text>
+              </Pressable>
+              
+              <View style={styles.dropdownDivider} />
+
+              <Pressable 
+                style={[styles.dropdownItem, trackingPeriod === "monthly" && styles.activeDropdownItem]}
+                onPress={() => togglePeriodSelection("monthly")}
+              >
+                <Ionicons name="apps-outline" size={16} color={trackingPeriod === "monthly" ? "#007AFF" : "#48484A"} />
+                <Text style={[styles.dropdownItemText, trackingPeriod === "monthly" && styles.activeDropdownItemText]}>Monthly Tracking</Text>
+              </Pressable>
+            </View>
+          )}
+
           <Text style={styles.walletAmount}>
-            ₱{totalSpentThisMonth.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            ₱{totalSpent.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </Text>
+          
           <View style={styles.walletFooter}>
             <View style={styles.liveIndicatorContainer}>
               <View style={styles.liveDot} />
-              <Text style={styles.liveText}>Syncing live with Gemini AI</Text>
+              <Text style={styles.liveText}>
+                Showing records for this {trackingPeriod === "weekly" ? "week" : "month"}
+              </Text>
             </View>
           </View>
         </View>
@@ -111,7 +189,6 @@ export default function HomeScreen() {
         {/* 3. QUICK ACTIONS GRID SECTION */}
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.actionsGrid}>
-          
           <Pressable style={styles.actionButton} onPress={() => router.push("/scan")}>
             <View style={[styles.actionIconCircle, { backgroundColor: "#EEF7FF" }]}>
               <Ionicons name="camera" size={24} color="#007AFF" />
@@ -126,13 +203,12 @@ export default function HomeScreen() {
             <Text style={styles.actionLabel}>Analytics</Text>
           </Pressable>
 
-          <Pressable style={styles.actionButton} onPress={() => fetchHomeData()}>
+          <Pressable style={styles.actionButton} onPress={() => fetchHomeData(trackingPeriod)}>
             <View style={[styles.actionIconCircle, { backgroundColor: "#EFFFFA" }]}>
               <Ionicons name="refresh" size={24} color="#34C759" />
             </View>
             <Text style={styles.actionLabel}>Refresh</Text>
           </Pressable>
-
         </View>
 
         {/* 4. RECENT TRANSACTIONS ACTIVITY */}
@@ -146,7 +222,7 @@ export default function HomeScreen() {
         {recentTransactions.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="duplicate-outline" size={44} color="#C7C7CC" />
-            <Text style={styles.emptyText}>No receipts scanned yet. Tap 'Scan Receipt' to start tracking!</Text>
+            <Text style={styles.emptyText}>No logs found for this period. Scan a receipt to begin tracking!</Text>
           </View>
         ) : (
           recentTransactions.map((item) => (
@@ -176,18 +252,22 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#F8F9FA" },
   loadingText: { marginTop: 10, color: "#666", fontSize: 14 },
 
-  // Header Styling
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 24 },
   subGreeting: { fontSize: 14, color: "#8E8E93", fontWeight: "500" },
   mainGreeting: { fontSize: 26, fontWeight: "700", color: "#1C1C1E", marginTop: 2 },
-  profileBadge: { width: 40, height: 40, justifyContent: "center", alignItems: "center" },
+  
+  profileBadge: { width: 40, height: 40, borderRadius: 20, overflow: "hidden" },
+  avatarImage: { width: "100%", height: "100%" },
+  avatarFallbackCircle: { width: "100%", height: "100%", backgroundColor: "#007AFF", justifyContent: "center", alignItems: "center" },
 
-  // Wallet Card Modern Dashboard Style
+  // Wallet Card Dashboard Layout
   walletCard: {
-    backgroundColor: "#007AFF", // Brand Royal Blue
+    backgroundColor: "#007AFF", 
     borderRadius: 24,
     padding: 24,
     marginBottom: 26,
+    position: "relative", // 🛠️ Kinahanglan aron mo-float ang Dropdown box sa sulod niini
+    zIndex: 10,
     shadowColor: "#007AFF",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
@@ -195,19 +275,75 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   walletHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  walletTitle: { color: "#FFFFFF", fontSize: 13, fontWeight: "600", opacity: 0.8, textTransform: "uppercase", letterSpacing: 0.5 },
-  walletAmount: { color: "#FFFFFF", fontSize: 36, fontWeight: "700", marginTop: 12, marginBottom: 16 },
+  
+  // 🛠️ CUSTOM ACCENT DROPDOWN STYLING
+  dropdownTrigger: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 30,
+    gap: 6,
+  },
+  walletTitle: { 
+    color: "#FFFFFF", 
+    fontSize: 12, 
+    fontWeight: "700", 
+    textTransform: "uppercase", 
+    letterSpacing: 0.5 
+  },
+  dropdownMenuBox: {
+    position: "absolute",
+    top: 55,
+    left: 24,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    width: 180,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    zIndex: 99,
+    padding: 4,
+  },
+  dropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+  },
+  activeDropdownItem: {
+    backgroundColor: "#F0F7FF",
+  },
+  dropdownItemText: {
+    fontSize: 13,
+    color: "#1C1C1E",
+    fontWeight: "500",
+  },
+  activeDropdownItemText: {
+    color: "#007AFF",
+    fontWeight: "600",
+  },
+  dropdownDivider: {
+    height: 1,
+    backgroundColor: "#F2F2F7",
+    marginVertical: 2,
+  },
+
+  walletAmount: { color: "#FFFFFF", fontSize: 36, fontWeight: "700", marginTop: 16, marginBottom: 16 },
   walletFooter: { borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.15)", paddingTop: 12 },
   liveIndicatorContainer: { flexDirection: "row", alignItems: "center" },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#34C759", marginRight: 6 },
   liveText: { color: "#FFFFFF", fontSize: 12, fontWeight: "500", opacity: 0.9 },
 
-  // Section Layout Headers
   sectionTitle: { fontSize: 18, fontWeight: "700", color: "#1C1C1E", marginBottom: 14 },
   recentSectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 12 },
   viewAllText: { fontSize: 14, color: "#007AFF", fontWeight: "600" },
 
-  // Quick Action Buttons Matrix Grid
   actionsGrid: { flexDirection: "row", justifyContent: "space-between", marginBottom: 26, gap: 12 },
   actionButton: {
     flex: 1,
@@ -224,7 +360,6 @@ const styles = StyleSheet.create({
   actionIconCircle: { width: 48, height: 48, borderRadius: 24, justifyContent: "center", alignItems: "center", marginBottom: 8 },
   actionLabel: { fontSize: 12, fontWeight: "600", color: "#3A3A3C" },
 
-  // Feed Activity Rows Layout
   transactionItemCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 18,
@@ -246,7 +381,6 @@ const styles = StyleSheet.create({
   itemCategorySub: { fontSize: 12, color: "#8E8E93", marginTop: 2, fontWeight: "500" },
   itemCostValue: { fontSize: 15, fontWeight: "700", color: "#FF3B30" },
 
-  // Empty Box Setup
   emptyContainer: { backgroundColor: "#FFFFFF", borderRadius: 20, padding: 30, alignItems: "center", gap: 10 },
   emptyText: { fontSize: 13, color: "#8E8E93", textAlign: "center", lineHeight: 18, fontWeight: "500" }
 });

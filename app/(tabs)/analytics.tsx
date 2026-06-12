@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "../../utils/supabase";
 
@@ -13,12 +13,19 @@ interface CategoryData {
   color: string;
 }
 
+// 🛠️ Mga kapilian para sa filter range
+type FilterRange = "this_month" | "last_month" | "this_week" | "last_week";
+
 export default function AnalyticsScreen() {
   const [loading, setLoading] = useState(true);
   const [totalSpending, setTotalSpending] = useState(0);
   const [receiptCount, setReceiptCount] = useState(0);
   const [topCategory, setTopCategory] = useState({ name: "None", amount: 0 });
   const [categories, setCategories] = useState<CategoryData[]>([]);
+
+  // 🛠️ MGA BAG-ONG STATE PARA SA ANALYTICS DROPDOWN
+  const [filterRange, setFilterRange] = useState<FilterRange>("this_month");
+  const [showDropdown, setShowDropdown] = useState(false);
 
   // Category Color Mapper para sa Limpyo nga UI UX
   const getCategoryColor = (cat: string): string => {
@@ -32,17 +39,56 @@ export default function AnalyticsScreen() {
     return colors[cat] || "#34C759"; // Default Green
   };
 
-  const fetchAnalyticsData = async () => {
+  // 🛠️ LABING LABAW NGA LOGIC SA TIME-RANGE CALCULATION
+  const fetchAnalyticsData = async (range: FilterRange = filterRange) => {
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // 1. Fetch tanan transactions sa user
+      const now = new Date();
+      let startDate = new Date();
+      let endDate = new Date();
+
+      switch (range) {
+        case "this_month":
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+          break;
+        case "last_month":
+          startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+          break;
+        case "this_week":
+          const currentDay = now.getDay(); // 0 is Sunday
+          startDate.setDate(now.getDate() - currentDay);
+          startDate.setHours(0, 0, 0, 0);
+          endDate = new Date(startDate);
+          endDate.setDate(startDate.getDate() + 6);
+          endDate.setHours(23, 59, 59, 999);
+          break;
+        case "last_week":
+          const prevDay = now.getDay();
+          const startOfThisWeek = new Date(now);
+          startOfThisWeek.setDate(now.getDate() - prevDay);
+          
+          startDate = new Date(startOfThisWeek);
+          startDate.setDate(startOfThisWeek.getDate() - 7);
+          startDate.setHours(0, 0, 0, 0);
+          
+          endDate = new Date(startDate);
+          endDate.setDate(startDate.getDate() + 6);
+          endDate.setHours(23, 59, 59, 999);
+          break;
+      }
+
+      // 1. Fetch transactions nga nasulod sa filter dates range
       const { data: transactions, error } = await supabase
         .from("transactions")
         .select("amount, category")
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .gte("created_at", startDate.toISOString())
+        .lte("created_at", endDate.toISOString());
 
       if (error) throw error;
 
@@ -74,10 +120,16 @@ export default function AnalyticsScreen() {
             percentage: total > 0 ? (amt / total) * 100 : 0,
             color: getCategoryColor(key)
           };
-        }).sort((a, b) => b.amount - a.amount); // I-sort gikan sa pinakadako
+        }).sort((a, b) => b.amount - a.amount);
 
         setCategories(formattedCategories);
         setTopCategory({ name: highestCatName, amount: highestCatAmount });
+      } else {
+        // I-reset ang data kung walay nakit-an nga records sa maong filter period
+        setTotalSpending(0);
+        setReceiptCount(0);
+        setCategories([]);
+        setTopCategory({ name: "None", amount: 0 });
       }
     } catch (e) {
       console.error("Error fetching analytics:", e);
@@ -86,15 +138,31 @@ export default function AnalyticsScreen() {
     }
   };
 
+  // 🛠️ Mo-reload matag usab sa dropdown configuration state
   useEffect(() => {
-    fetchAnalyticsData();
-  }, []);
+    fetchAnalyticsData(filterRange);
+  }, [filterRange]);
 
-  if (loading) {
+  const handleSelectRange = (range: FilterRange) => {
+    setFilterRange(range);
+    setShowDropdown(false);
+  };
+
+  // Label UI formatter base sa active token identifier
+  const getRangeLabel = (range: FilterRange) => {
+    switch (range) {
+      case "this_month": return "This Month";
+      case "last_month": return "Last Month";
+      case "this_week": return "This Week";
+      case "last_week": return "Last Week";
+    }
+  };
+
+  if (loading && !showDropdown) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading Analytics Data...</Text>
+        <Text style={styles.loadingText}>Analyzing Records...</Text>
       </View>
     );
   }
@@ -103,19 +171,43 @@ export default function AnalyticsScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         
+        {/* 🛠️ COMPACT DROPDOWN SELECTOR BAR CODES */}
+        <View style={styles.dropdownSectionContainer}>
+          <Text style={styles.pageTitleText}>Expense Analytics</Text>
+          <View style={styles.dropdownWrapper}>
+            <Pressable style={styles.dropdownTriggerBtn} onPress={() => setShowDropdown(!showDropdown)}>
+              <Text style={styles.dropdownTriggerLabel}>{getRangeLabel(filterRange)}</Text>
+              <Ionicons name={showDropdown ? "chevron-up" : "chevron-down"} size={14} color="#007AFF" />
+            </Pressable>
+
+            {showDropdown && (
+              <View style={styles.dropdownFloaterBox}>
+                <Pressable style={[styles.dropdownOption, filterRange === "this_month" && styles.activeOption]} onPress={() => handleSelectRange("this_month")}>
+                  <Text style={[styles.optionText, filterRange === "this_month" && styles.activeOptionText]}>This Month</Text>
+                </Pressable>
+                <Pressable style={[styles.dropdownOption, filterRange === "last_month" && styles.activeOption]} onPress={() => handleSelectRange("last_month")}>
+                  <Text style={[styles.optionText, filterRange === "last_month" && styles.activeOptionText]}>Last Month</Text>
+                </Pressable>
+                <View style={styles.menuDividerLine} />
+                <Pressable style={[styles.dropdownOption, filterRange === "this_week" && styles.activeOption]} onPress={() => handleSelectRange("this_week")}>
+                  <Text style={[styles.optionText, filterRange === "this_week" && styles.activeOptionText]}>This Week</Text>
+                </Pressable>
+                <Pressable style={[styles.dropdownOption, filterRange === "last_week" && styles.activeOption]} onPress={() => handleSelectRange("last_week")}>
+                  <Text style={[styles.optionText, filterRange === "last_week" && styles.activeOptionText]}>Last Week</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+        </View>
+
         {/* HEADER SUMMARY CARD */}
         <View style={styles.headerCard}>
-          <Text style={styles.headerLabel}>Total Tracked Spending</Text>
+          <Text style={styles.headerLabel}>Tracked Spending ({getRangeLabel(filterRange)})</Text>
           <Text style={styles.headerAmount}>₱{totalSpending.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text>
-          <View style={styles.trendRow}>
-            <Ionicons name="trending-up" size={16} color="#34C759" />
-            <Text style={styles.trendText}>Live updates from receipt data</Text>
-          </View>
         </View>
 
         {/* MODERN BENTO GRID ROW */}
         <View style={styles.bentoGridRow}>
-          
           {/* Card 1: Top Category Box */}
           <View style={[styles.bentoCard, { flex: 1.3 }]}>
             <View style={styles.bentoIconWrapper}>
@@ -131,11 +223,10 @@ export default function AnalyticsScreen() {
             <View style={styles.bentoIconWrapper}>
               <Ionicons name="document-text-outline" size={20} color="#007AFF" />
             </View>
-            <Text style={styles.bentoLabel}>Scanned</Text>
+            <Text style={styles.bentoLabel}>Transactions</Text>
             <Text style={[styles.bentoMainVal, { fontSize: 32 }]}>{receiptCount}</Text>
-            <Text style={styles.bentoSubVal}>Receipts total</Text>
+            <Text style={styles.bentoSubVal}>Total Logs</Text>
           </View>
-
         </View>
 
         {/* CATEGORY BREAKDOWN LIST CONTAINER */}
@@ -143,7 +234,10 @@ export default function AnalyticsScreen() {
           <Text style={styles.sectionTitle}>Category Breakdown</Text>
           
           {categories.length === 0 ? (
-            <Text style={styles.emptyText}>No category history data available yet.</Text>
+            <View style={styles.emptyBox}>
+              <Ionicons name="folder-open-outline" size={36} color="#8E8E93" style={{ marginBottom: 8 }} />
+              <Text style={styles.emptyText}>No transactions recorded during this period.</Text>
+            </View>
           ) : (
             categories.map((item, index) => (
               <View key={index} style={styles.categoryRowItem}>
@@ -181,6 +275,79 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#F8F9FA" },
   loadingText: { marginTop: 10, color: "#666", fontSize: 14 },
   
+  // 🛠️ STYLING SA DROPDOWN SELECTOR LAYOUT
+  dropdownSectionContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+    zIndex: 99, // Importante aron molataw ang dropdown options list
+  },
+  pageTitleText: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#1C1C1E",
+    letterSpacing: -0.4,
+  },
+  dropdownWrapper: {
+    position: "relative",
+  },
+  dropdownTriggerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: "#E5E5EA",
+  },
+  dropdownTriggerLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#007AFF",
+  },
+  dropdownFloaterBox: {
+    position: "absolute",
+    top: 40,
+    right: 0,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    width: 140,
+    padding: 4,
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    zIndex: 100,
+    borderWidth: 1,
+    borderColor: "#F2F2F7",
+  },
+  dropdownOption: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  activeOption: {
+    backgroundColor: "#F0F7FF",
+  },
+  optionText: {
+    fontSize: 13,
+    color: "#1C1C1E",
+    fontWeight: "500",
+  },
+  activeOptionText: {
+    color: "#007AFF",
+    fontWeight: "600",
+  },
+  menuDividerLine: {
+    height: 1,
+    backgroundColor: "#F2F2F7",
+    marginVertical: 4,
+  },
+
   // Header Style Card
   headerCard: {
     backgroundColor: "#FFFFFF",
@@ -189,14 +356,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.04,
     shadowRadius: 10,
     elevation: 2,
   },
-  headerLabel: { fontSize: 14, color: "#8E8E93", fontWeight: "600", textTransform: "uppercase" },
-  headerAmount: { fontSize: 36, fontWeight: "700", color: "#1C1C1E", marginVertical: 8 },
-  trendRow: { flexDirection: "row", alignItems: "center" },
-  trendText: { fontSize: 13, color: "#34C759", marginLeft: 4, fontWeight: "500" },
+  headerLabel: { fontSize: 13, color: "#8E8E93", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.3 },
+  headerAmount: { fontSize: 34, fontWeight: "700", color: "#1C1C1E", marginTop: 8 },
 
   // Bento Grid System Layout
   bentoGridRow: { flexDirection: "row", gap: 14, marginBottom: 20 },
@@ -208,7 +373,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.04,
     shadowRadius: 10,
     elevation: 2,
   },
@@ -221,8 +386,8 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   bentoLabel: { fontSize: 13, color: "#8E8E93", fontWeight: "500", marginTop: 8 },
-  bentoMainVal: { fontSize: 22, fontWeight: "700", color: "#1C1C1E", marginVertical: 2 },
-  bentoSubVal: { fontSize: 13, color: "#636366", fontWeight: "500" },
+  bentoMainVal: { fontSize: 20, fontWeight: "700", color: "#1C1C1E", marginVertical: 2 },
+  bentoSubVal: { fontSize: 12, color: "#636366", fontWeight: "500" },
 
   // Breakdown List Styles
   breakdownSection: {
@@ -231,12 +396,17 @@ const styles = StyleSheet.create({
     padding: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.04,
     shadowRadius: 10,
     elevation: 2,
   },
   sectionTitle: { fontSize: 18, fontWeight: "700", color: "#1C1C1E", marginBottom: 16 },
-  emptyText: { color: "#8E8E93", textAlign: "center", marginVertical: 20 },
+  emptyBox: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 30,
+  },
+  emptyText: { color: "#8E8E93", fontSize: 13, textAlign: "center", fontWeight: "500" },
   categoryRowItem: { marginBottom: 16 },
   catLabelRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
   catIndicatorGroup: { flexDirection: "row", alignItems: "center", gap: 8 },
