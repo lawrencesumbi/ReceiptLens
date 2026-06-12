@@ -481,7 +481,7 @@ export default function Profile() {
           style={({ pressed }) => [styles.logoutButton, pressed && styles.logoutButtonPressed]}
         >
           <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
-          <Text style={styles.logoutText}>Log Out from Payton</Text>
+          <Text style={styles.logoutText}>Log Out</Text>
         </Pressable>
 
       </ScrollView>
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 24,
-    paddingTop: Platform.OS === "ios" ? 60 : 15,
+    paddingTop: Platform.OS === "ios" ? 60 : 45,
     paddingBottom: 120,
   },
   headerTitle: { 

@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     zIndex: 99, // Importante aron molataw ang dropdown options list
   },
   pageTitleText: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "700",
     color: "#1C1C1E",
     letterSpacing: -0.4,
