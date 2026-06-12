@@ -1,13 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import base64js from "base64-js";
 import * as FileSystem from "expo-file-system/legacy";
-import * as ImagePicker from "expo-image-picker"; // Injected for profile picture updates
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
+import * as Sharing from "expo-sharing"; // Gidugang para sa Export Data share prompt
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image, // Gidugang para sa pag-render sa profile picture
+  Image,
   LayoutAnimation,
   Platform,
   Pressable,
@@ -30,8 +31,9 @@ export default function Profile() {
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null); // State para sa profile picture URL
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null); 
   const [theme, setTheme] = useState("system");
+  const [language, setLanguage] = useState("ceb"); // Default to Cebuano
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
   useEffect(() => {
@@ -40,7 +42,7 @@ export default function Profile() {
       if (user) {
         setEmail(user.email || "");
         setFullName(user.user_metadata?.full_name || "");
-        setAvatarUrl(user.user_metadata?.avatar_url || null); // I-load ang avatar_url gikan sa metadata
+        setAvatarUrl(user.user_metadata?.avatar_url || null); 
       }
     };
     fetchUser();
@@ -48,7 +50,6 @@ export default function Profile() {
 
   // --- FUNCTION PARA SA PAG-PICK UG PAG-UPLOAD OG PROFILE PICTURE ---
   const handlePickAvatar = async () => {
-    // Mangayo og permiso sa pag-access sa gallery
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (permissionResult.granted === false) {
@@ -59,8 +60,8 @@ export default function Profile() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [1, 1], // Square aspect ratio para sa lingkit nga avatar
-      quality: 0.5, // Gi-compress gamay para paspas i-upload
+      aspect: [1, 1], 
+      quality: 0.5, 
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -76,19 +77,16 @@ export default function Profile() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user logged in.");
 
-      // --- MAO KINI ANG KORREKSYON: Gi-hardcode ang 'base64' string isip encoding option ---
       const base64Data = await FileSystem.readAsStringAsync(fileUri, {
         encoding: "base64",
       });
 
-      // I-convert ngadto sa ArrayBuffer gamit ang base64-js decode
       const arrayBuffer = base64js.toByteArray(base64Data);
 
       const fileExt = fileUri.split('.').pop()?.toLowerCase() || "jpg";
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      // I-upload ang ArrayBuffer ngadto sa Supabase
       const { error: uploadError } = await supabase.storage
         .from("avatars")
         .upload(filePath, arrayBuffer, {
@@ -98,12 +96,10 @@ export default function Profile() {
 
       if (uploadError) throw uploadError;
 
-      // Pagkuha sa Public URL
       const { data: { publicUrl } } = supabase.storage
         .from("avatars")
         .getPublicUrl(filePath);
 
-      // I-update ang user metadata sa auth
       const { error: updateError } = await supabase.auth.updateUser({
         data: { avatar_url: publicUrl },
       });
@@ -168,6 +164,54 @@ export default function Profile() {
     }
   };
 
+  // --- FUNCTION PARA SA EXPORT DATA (CSV GENERATOR & SHARE) ---
+  const handleExportData = async () => {
+    try {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No authenticated user found.");
+
+      // Pagkuha sa tanang transactions sa user
+      const { data: transactions, error } = await supabase
+        .from("transactions")
+        .select("created_at, merchant, amount, category, payment_method")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      if (!transactions || transactions.length === 0) {
+        Alert.alert("Export Data", "Wala kay transaksyon nga pwedeng i-export karon.");
+        return;
+      }
+
+      // Pag-construct sa CSV String content
+      let csvContent = "Date,Merchant,Amount,Category,Payment Method\n";
+      transactions.forEach((tx) => {
+        const dateStr = tx.created_at ? new Date(tx.created_at).toLocaleDateString() : "";
+        const merchantClean = tx.merchant ? `"${tx.merchant.replace(/"/g, '""')}"` : "Unknown";
+        const categoryClean = tx.category ? `"${tx.category.replace(/"/g, '""')}"` : "";
+        csvContent += `${dateStr},${merchantClean},${tx.amount || 0},${categoryClean},${tx.payment_method || ""}\n`;
+      });
+
+      // Pag-save sa file ngadto sa temporary local storage sa phone
+      const fileUri = `${FileSystem.documentDirectory}Payton_Transactions_Export.csv`;
+      await FileSystem.writeAsStringAsync(fileUri, csvContent, { encoding: "utf8" });
+
+      // Trigger sa standard share layout dialog window sa operating system
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri);
+      } else {
+        Alert.alert("Export Data", `Na-save na ang imong file sa: ${fileUri}`);
+      }
+    } catch (err: any) {
+      console.error("Export error:", err);
+      Alert.alert("Export Failed", err.message || "Something went wrong while exporting your data.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogout = async () => {
     Alert.alert("Logout", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
@@ -188,7 +232,6 @@ export default function Profile() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* 🛠️ IN-LINE HEADER TITLE (Mabalhin na inig scroll) */}
         <Text style={styles.headerTitle}>Account Settings</Text>
 
         {/* --- Profile Header Avatar Block --- */}
@@ -198,16 +241,19 @@ export default function Profile() {
               {avatarUrl ? (
                 <Image source={{ uri: avatarUrl }} style={styles.avatarImage} resizeMode="cover" />
               ) : (
-                <Ionicons name="person" size={40} color="#ffffff" />
+                <Ionicons name="person" size={32} color="#ffffff" />
               )}
             </View>
             <View style={styles.cameraBadge}>
-              <Ionicons name="camera" size={14} color="#ffffff" />
+              <Ionicons name="camera" size={10} color="#ffffff" />
             </View>
           </Pressable>
-          <Text style={styles.userEmailText}>{fullName || email || "Active User"}</Text>
-          {fullName ? <Text style={styles.userSubEmailText}>{email}</Text> : null}
-          <Text style={styles.statusBadge}>Premium Account</Text>
+
+          <View style={styles.profileInfoTextContainer}>
+            <Text style={styles.userEmailText}>{fullName || email || "Active User"}</Text>
+            {fullName ? <Text style={styles.userSubEmailText}>{email}</Text> : null}
+            
+          </View>
         </View>
 
         {/* --- Main Settings Container --- */}
@@ -241,7 +287,7 @@ export default function Profile() {
                   disabled={loading}
                   style={[styles.actionButton, styles.nameButtonColor, loading && styles.disabledButton]}
                 >
-                  <Text style={styles.buttonText}>Save Full Name</Text>
+                  <Text style={styles.buttonText}>Update Full Name</Text>
                 </Pressable>
               </View>
             )}
@@ -322,7 +368,78 @@ export default function Profile() {
             )}
           </View>
 
-          {/* 4. About */}
+          {/* 4. Language */}
+          <View style={styles.rowWrapper}>
+            <Pressable style={styles.menuRow} onPress={() => toggleSection("language")}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="language-outline" size={22} color="#111111" />
+                <Text style={styles.rowTitle}>Language</Text>
+              </View>
+              <Ionicons 
+                name={expandedSection === "language" ? "chevron-down" : "chevron-forward"} 
+                size={18} 
+                color="#8E8E93" 
+              />
+            </Pressable>
+
+            {expandedSection === "language" && (
+              <View style={styles.expandedContent}>
+                <View style={styles.segmentedControl}>
+                  <Pressable 
+                    style={[styles.segment, language === "en" && styles.activeSegment]} 
+                    onPress={() => setLanguage("en")}
+                  >
+                    <Text style={[styles.segmentText, language === "en" && styles.activeSegmentText]}>English</Text>
+                  </Pressable>
+                  <Pressable 
+                    style={[styles.segment, language === "ceb" && styles.activeSegment]} 
+                    onPress={() => setLanguage("ceb")}
+                  >
+                    <Text style={[styles.segmentText, language === "ceb" && styles.activeSegmentText]}>Cebuano</Text>
+                  </Pressable>
+                  <Pressable 
+                    style={[styles.segment, language === "tl" && styles.activeSegment]} 
+                    onPress={() => setLanguage("tl")}
+                  >
+                    <Text style={[styles.segmentText, language === "tl" && styles.activeSegmentText]}>Tagalog</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* 5. Export Data */}
+          <View style={styles.rowWrapper}>
+            <Pressable style={styles.menuRow} onPress={() => toggleSection("export")}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="download-outline" size={22} color="#111111" />
+                <Text style={styles.rowTitle}>Export Data</Text>
+              </View>
+              <Ionicons 
+                name={expandedSection === "export" ? "chevron-down" : "chevron-forward"} 
+                size={18} 
+                color="#8E8E93" 
+              />
+            </Pressable>
+
+            {expandedSection === "export" && (
+              <View style={styles.expandedContent}>
+                <Text style={styles.descriptionText}>
+                  Download the complete list of your transactions and expenses into a structured CSV spreadsheet file.
+                </Text>
+                <Pressable 
+                  onPress={handleExportData} 
+                  disabled={loading}
+                  style={[styles.actionButton, styles.exportButtonColor, loading && styles.disabledButton]}
+                >
+                  <Ionicons name="cloud-download-outline" size={18} color="#ffffff" style={{ marginRight: 6 }} />
+                  <Text style={styles.buttonText}>Generate & Share CSV</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+
+          {/* 6. About */}
           <View style={[styles.rowWrapper, { borderBottomWidth: 0 }]}>
             <Pressable style={styles.menuRow} onPress={() => toggleSection("about")}>
               <View style={styles.rowLeft}>
@@ -358,13 +475,13 @@ export default function Profile() {
 
         </View>
 
-        {/* 5. Danger Zone / Logout Action */}
+        {/* Danger Zone / Logout Action */}
         <Pressable 
           onPress={handleLogout}
           style={({ pressed }) => [styles.logoutButton, pressed && styles.logoutButtonPressed]}
         >
           <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
-          <Text style={styles.logoutText}>Log Out from ReceiptLens</Text>
+          <Text style={styles.logoutText}>Log Out from Payton</Text>
         </Pressable>
 
       </ScrollView>
@@ -385,35 +502,35 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 24,
-    // 🎨 GI-ADJUST ANG PADDING: Gihatagan og saktong dako nga top padding para sa safe spacing sa phone viewports
-    paddingTop: Platform.OS === "ios" ? 60 : 40,
+    paddingTop: Platform.OS === "ios" ? 60 : 15,
     paddingBottom: 120,
   },
-  // 🛠️ GI-RESTORE ANG TITLE STYLE NGA IN-LINE:
   headerTitle: { 
     fontSize: 28, 
     fontWeight: "700", 
     color: "#111111", 
-    marginBottom: 20,
+    marginBottom: 14,
     letterSpacing: -0.5,
   },
   profileHeaderCard: {
     backgroundColor: "#ffffff",
     borderRadius: 20,
-    padding: 24,
+    padding: 20,
+    flexDirection: "row", // Gi-row para ma-left side ang pic ug right side ang text details
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#EAEAEA",
     marginBottom: 25,
+    gap: 18, // Saktong distansya tali sa avatar ug sa text block
   },
   avatarContainer: {
     position: "relative",
-    marginBottom: 14,
+    // Gikuhaan gamay og margin kay row na ang iyang alignment flow
   },
   avatarCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 68, // Gi-adjust gamay ang gidak-on para proportional sa row container look
+    height: 68,
+    borderRadius: 34,
     backgroundColor: "#007AFF",
     justifyContent: "center",
     alignItems: "center",
@@ -425,36 +542,45 @@ const styles = StyleSheet.create({
   },
   cameraBadge: {
     position: "absolute",
-    bottom: 0,
-    right: 0,
+    bottom: -2,
+    right: -2,
     backgroundColor: "#007AFF",
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
     borderColor: "#ffffff",
   },
+  profileInfoTextContainer: {
+    flex: 1, // Mo-occupy sa tibuok nahabiling space sa right side nga hapsay
+    flexDirection: "column",
+    justifyContent: "center",
+  },
   userEmailText: {
     fontSize: 18,
     fontWeight: "700",
     color: "#111111",
+    letterSpacing: -0.3,
   },
   userSubEmailText: {
     fontSize: 13,
     color: "#666666",
-    marginTop: 3,
+    marginTop: 2,
+  },
+  badgeWrapperRow: {
+    flexDirection: "row", // Nagsiguro nga ang badge dili mo-stretch og full width sa right layout container bounds
+    marginTop: 8,
   },
   statusBadge: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
     color: "#34C759",
     backgroundColor: "#E8F5E9",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
     overflow: "hidden",
   },
   settingsGroupCard: {
@@ -490,6 +616,12 @@ const styles = StyleSheet.create({
     paddingBottom: 18,
     paddingHorizontal: 4,
   },
+  descriptionText: {
+    fontSize: 13,
+    color: "#666666",
+    lineHeight: 18,
+    marginBottom: 12,
+  },
   input: {
     borderWidth: 1,
     borderColor: "#e0e0e0",
@@ -506,12 +638,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
   },
   nameButtonColor: {
     backgroundColor: "#4CAF50",
   },
   passwordButtonColor: {
     backgroundColor: "#6366F1",
+  },
+  exportButtonColor: {
+    backgroundColor: "#0284C7",
   },
   disabledButton: {
     opacity: 0.5,

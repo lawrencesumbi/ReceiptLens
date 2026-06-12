@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Dimensions, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "../../utils/supabase";
 
@@ -271,7 +271,9 @@ export default function AnalyticsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F8F9FA" },
-  scrollContainer: { padding: 20 },
+  scrollContainer: {paddingHorizontal: 24,
+      paddingTop: Platform.OS === "ios" ? 60 : 15,
+      paddingBottom: 120,},
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#F8F9FA" },
   loadingText: { marginTop: 10, color: "#666", fontSize: 14 },
   
@@ -280,11 +282,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 15,
     zIndex: 99, // Importante aron molataw ang dropdown options list
   },
   pageTitleText: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: "700",
     color: "#1C1C1E",
     letterSpacing: -0.4,
@@ -352,7 +354,7 @@ const styles = StyleSheet.create({
   headerCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
-    padding: 24,
+    padding: 18,
     marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },

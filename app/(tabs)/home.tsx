@@ -214,7 +214,7 @@ export default function HomeScreen() {
         {/* 4. RECENT TRANSACTIONS ACTIVITY */}
         <View style={styles.recentSectionHeader}>
           <Text style={styles.sectionTitle}>Recent Activity</Text>
-          <Pressable onPress={() => router.push("/analytics")}>
+          <Pressable onPress={() => router.push("/transaction")}>
             <Text style={styles.viewAllText}>View All</Text>
           </Pressable>
         </View>
