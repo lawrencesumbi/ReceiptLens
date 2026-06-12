@@ -23,7 +23,7 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 // 8 Clean Categories with custom icons and colors
-const CATEGORY_CONFIG: { [key: string]: { icon: string; color: string } } = {
+const CATEGORY_CONFIG: { [key: string]: { icon: React.ComponentProps<typeof Ionicons>["name"]; color: string } } = {
   "Food & Drinks": { icon: "fast-food-outline", color: "#FF9500" }, // Orange
   "Groceries": { icon: "cart-outline", color: "#4CAF50" },         // Green
   "Transportation": { icon: "car-outline", color: "#6366F1" },     // Indigo

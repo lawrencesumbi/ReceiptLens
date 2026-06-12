@@ -92,11 +92,6 @@ export default function TabLayout() {
         options={{
           title: "",
           headerShown: false,               // 🛠️ CLEAN FIX: Gi-hide kay full screen camera immersive component man kini
-          tabBarIcon: () => (
-            <View style={styles.floatingScanButton}>
-              <Ionicons name="scan" size={28} color="white" />
-            </View>
-          ),
           tabBarLabelStyle: {
             fontSize: 11,
             fontWeight: "600",
@@ -153,9 +148,9 @@ export default function TabLayout() {
 
           {/* Option 2: Automatic Scan row */}
           <View style={styles.speedDialRow}>
-            <Text style={styles.speedDialLabel}>Scan Receipt</Text>
+            <Text style={styles.speedDialLabel}>AI Scan Receipt</Text>
             <Pressable style={[styles.speedDialFab, { backgroundColor: "#007AFF" }]} onPress={handleSelectScan}>
-              <Ionicons name="sparkles" size={22} color="#FFFFFF" />
+              <Ionicons name="scan" size={22} color="#FFFFFF" />
             </Pressable>
           </View>
 
