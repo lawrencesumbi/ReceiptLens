@@ -31,6 +31,7 @@ export default function Profile() {
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // State para sa hide/unhide password
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null); 
   const [theme, setTheme] = useState("system");
   const [language, setLanguage] = useState("ceb"); // Default to Cebuano
@@ -158,9 +159,19 @@ export default function Profile() {
     if (error) {
       Alert.alert("Update Failed", error.message);
     } else {
-      Alert.alert("Success", "Your password has been securely updated.");
-      setPassword(""); 
-      setExpandedSection(null);
+      Alert.alert("Success", "Your password has been securely updated. You will now be logged out.", [
+        {
+          text: "OK",
+          onPress: async () => {
+            setLoading(true);
+            await supabase.auth.signOut();
+            setLoading(false);
+            setPassword(""); 
+            setExpandedSection(null);
+            router.replace("/login");
+          }
+        }
+      ]);
     }
   };
 
@@ -252,7 +263,6 @@ export default function Profile() {
           <View style={styles.profileInfoTextContainer}>
             <Text style={styles.userEmailText}>{fullName || email || "Active User"}</Text>
             {fullName ? <Text style={styles.userSubEmailText}>{email}</Text> : null}
-            
           </View>
         </View>
 
@@ -309,14 +319,26 @@ export default function Profile() {
 
             {expandedSection === "password" && (
               <View style={styles.expandedContent}>
-                <TextInput
-                  placeholder="Enter new secure password"
-                  placeholderTextColor="#aaa"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  style={styles.input}
-                />
+                <View style={styles.passwordInputContainer}>
+                  <TextInput
+                    placeholder="Enter new secure password"
+                    placeholderTextColor="#aaa"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    style={[styles.input, { marginBottom: 0, paddingRight: 45 }]}
+                  />
+                  <Pressable 
+                    style={styles.eyeIconContainer} 
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    <Ionicons 
+                      name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                      size={20} 
+                      color="#666666" 
+                    />
+                  </Pressable>
+                </View>
                 <Pressable 
                   onPress={handleUpdatePassword}
                   disabled={loading}
@@ -516,19 +538,18 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     borderRadius: 20,
     padding: 20,
-    flexDirection: "row", // Gi-row para ma-left side ang pic ug right side ang text details
+    flexDirection: "row", 
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#EAEAEA",
     marginBottom: 25,
-    gap: 18, // Saktong distansya tali sa avatar ug sa text block
+    gap: 18, 
   },
   avatarContainer: {
     position: "relative",
-    // Gikuhaan gamay og margin kay row na ang iyang alignment flow
   },
   avatarCircle: {
-    width: 68, // Gi-adjust gamay ang gidak-on para proportional sa row container look
+    width: 68, 
     height: 68,
     borderRadius: 34,
     backgroundColor: "#007AFF",
@@ -554,7 +575,7 @@ const styles = StyleSheet.create({
     borderColor: "#ffffff",
   },
   profileInfoTextContainer: {
-    flex: 1, // Mo-occupy sa tibuok nahabiling space sa right side nga hapsay
+    flex: 1, 
     flexDirection: "column",
     justifyContent: "center",
   },
@@ -568,20 +589,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#666666",
     marginTop: 2,
-  },
-  badgeWrapperRow: {
-    flexDirection: "row", // Nagsiguro nga ang badge dili mo-stretch og full width sa right layout container bounds
-    marginTop: 8,
-  },
-  statusBadge: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#34C759",
-    backgroundColor: "#E8F5E9",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    overflow: "hidden",
   },
   settingsGroupCard: {
     backgroundColor: "#ffffff",
@@ -615,6 +622,18 @@ const styles = StyleSheet.create({
   expandedContent: {
     paddingBottom: 18,
     paddingHorizontal: 4,
+  },
+  passwordInputContainer: {
+    position: "relative",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  eyeIconContainer: {
+    position: "absolute",
+    right: 14,
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
   },
   descriptionText: {
     fontSize: 13,

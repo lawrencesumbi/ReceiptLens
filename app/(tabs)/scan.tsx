@@ -193,13 +193,7 @@ export default function ScanScreen() {
         {/* Top Control Header Bar */}
         <View style={styles.topBar}>
           <Text style={styles.scanHeaderTitle}>Scan Receipt</Text>
-          <Pressable style={styles.iconActionCircle} onPress={toggleFlash} disabled={isProcessing}>
-            <Ionicons 
-              name={flash === "on" ? "flash" : "flash-off-outline"} 
-              size={20} 
-              color={flash === "on" ? "#FFCC00" : "#ffffff"} 
-            />
-          </Pressable>
+          
         </View>
 
         {/* Central Transparent Framing Box */}
@@ -224,8 +218,13 @@ export default function ScanScreen() {
         {/* Bottom Controls Shutter Panel Area */}
         <View style={styles.bottomBarContainer}>
           <View style={styles.shutterRow}>
-            <View style={styles.secondaryActionCircle} />
-
+            <Pressable style={styles.secondaryActionCircle} onPress={toggleFlash} disabled={isProcessing}>
+              <Ionicons 
+                name={flash === "on" ? "flash" : "flash-off-outline"} 
+                size={20} 
+                color={flash === "on" ? "#FFCC00" : "#ffffff"} 
+              />
+            </Pressable>
             <Pressable 
               style={[styles.mainShutterOuter, isProcessing && { opacity: 0.5 }]} 
               onPress={handleCaptureAndUpload}

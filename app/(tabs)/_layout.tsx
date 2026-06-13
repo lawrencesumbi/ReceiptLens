@@ -150,7 +150,7 @@ export default function TabLayout() {
           <View style={styles.speedDialRow}>
             <Text style={styles.speedDialLabel}>AI Scan Receipt</Text>
             <Pressable style={[styles.speedDialFab, { backgroundColor: "#007AFF" }]} onPress={handleSelectScan}>
-              <Ionicons name="scan" size={22} color="#FFFFFF" />
+              <Ionicons name="camera" size={22} color="#FFFFFF" />
             </Pressable>
           </View>
 
