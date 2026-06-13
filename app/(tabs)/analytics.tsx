@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F8F9FA" },
   scrollContainer: {paddingHorizontal: 24,
       paddingTop: Platform.OS === "ios" ? 60 : 15,
-      paddingBottom: 120,},
+      paddingBottom: 30,},
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#F8F9FA" },
   loadingText: { marginTop: 10, color: "#666", fontSize: 14 },
   

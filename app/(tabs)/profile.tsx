@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 24,
     paddingTop: Platform.OS === "ios" ? 60 : 45,
-    paddingBottom: 120,
+    paddingBottom: 10,
   },
   headerTitle: { 
     fontSize: 28, 

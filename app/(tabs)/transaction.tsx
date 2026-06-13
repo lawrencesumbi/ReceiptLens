@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
   searchBarContainer: { flexDirection: "row", alignItems: "center", backgroundColor: "#EEEEEF", borderRadius: 12, paddingHorizontal: 12, height: 44 },
   searchIcon: { marginRight: 8 },
   searchInput: { flex: 1, fontSize: 15, color: "#111111" },
-  scrollContent: { paddingHorizontal: 24, paddingBottom: 140 },
+  scrollContent: { paddingHorizontal: 24, paddingBottom: 10 },
   loadingCenter: { flex: 1, justifyContent: "center", alignItems: "center" },
   sectionBlock: { marginBottom: 20 },
   sectionHeading: { fontSize: 14, fontWeight: "600", color: "#8E8E93", marginBottom: 8, paddingLeft: 4 },
