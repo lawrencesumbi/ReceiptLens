@@ -3,7 +3,7 @@ import base64js from "base64-js";
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import * as Sharing from "expo-sharing"; // Gidugang para sa Export Data share prompt
+import * as Sharing from "expo-sharing";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -14,11 +14,11 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   UIManager,
-  View,
 } from "react-native";
+
+import { Text, TextInput, View } from "../../components/Themed";
+import { useTheme } from "../../context/ThemeContext"; // 💡 Imported the theme hook
 import { supabase } from "../../utils/supabase";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -27,14 +27,14 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 
 export default function Profile() {
   const router = useRouter();
+  const { colors, theme: activeTheme, setTheme: setActiveTheme } = useTheme(); // 💡 Consume dynamic values
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // State para sa hide/unhide password
+  const [showPassword, setShowPassword] = useState(false); 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null); 
-  const [theme, setTheme] = useState("system");
-  const [language, setLanguage] = useState("ceb"); // Default to Cebuano
+  const [language, setLanguage] = useState("ceb"); 
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
   useEffect(() => {
@@ -49,7 +49,6 @@ export default function Profile() {
     fetchUser();
   }, []);
 
-  // --- FUNCTION PARA SA PAG-PICK UG PAG-UPLOAD OG PROFILE PICTURE ---
   const handlePickAvatar = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
@@ -83,7 +82,6 @@ export default function Profile() {
       });
 
       const arrayBuffer = base64js.toByteArray(base64Data);
-
       const fileExt = fileUri.split('.').pop()?.toLowerCase() || "jpg";
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
@@ -175,14 +173,12 @@ export default function Profile() {
     }
   };
 
-  // --- FUNCTION PARA SA EXPORT DATA (CSV GENERATOR & SHARE) ---
   const handleExportData = async () => {
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No authenticated user found.");
 
-      // Pagkuha sa tanang transactions sa user
       const { data: transactions, error } = await supabase
         .from("transactions")
         .select("created_at, merchant, amount, category, payment_method")
@@ -196,7 +192,6 @@ export default function Profile() {
         return;
       }
 
-      // Pag-construct sa CSV String content
       let csvContent = "Date,Merchant,Amount,Category,Payment Method\n";
       transactions.forEach((tx) => {
         const dateStr = tx.created_at ? new Date(tx.created_at).toLocaleDateString() : "";
@@ -205,11 +200,9 @@ export default function Profile() {
         csvContent += `${dateStr},${merchantClean},${tx.amount || 0},${categoryClean},${tx.payment_method || ""}\n`;
       });
 
-      // Pag-save sa file ngadto sa temporary local storage sa phone
       const fileUri = `${FileSystem.documentDirectory}Payton_Transactions_Export.csv`;
       await FileSystem.writeAsStringAsync(fileUri, csvContent, { encoding: "utf8" });
 
-      // Trigger sa standard share layout dialog window sa operating system
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(fileUri);
       } else {
@@ -238,7 +231,7 @@ export default function Profile() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} themeColorType="card">
       <ScrollView 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -246,7 +239,8 @@ export default function Profile() {
         <Text style={styles.headerTitle}>Account Settings</Text>
 
         {/* --- Profile Header Avatar Block --- */}
-        <View style={styles.profileHeaderCard}>
+        {/* 💡 Applied themeColorType="card" and dynamic borders */}
+        <View style={[styles.profileHeaderCard, { borderColor: colors.border }]} themeColorType="background">
           <Pressable style={styles.avatarContainer} onPress={handlePickAvatar} disabled={loading}>
             <View style={styles.avatarCircle}>
               {avatarUrl ? (
@@ -255,31 +249,32 @@ export default function Profile() {
                 <Ionicons name="person" size={32} color="#ffffff" />
               )}
             </View>
-            <View style={styles.cameraBadge}>
+            <View style={[styles.cameraBadge, { borderColor: colors.card }]}>
               <Ionicons name="camera" size={10} color="#ffffff" />
             </View>
           </Pressable>
 
           <View style={styles.profileInfoTextContainer}>
             <Text style={styles.userEmailText}>{fullName || email || "Active User"}</Text>
-            {fullName ? <Text style={styles.userSubEmailText}>{email}</Text> : null}
+            {fullName ? <Text style={[styles.userSubEmailText, { color: colors.text + '99' }]}>{email}</Text> : null}
           </View>
         </View>
 
         {/* --- Main Settings Container --- */}
-        <View style={styles.settingsGroupCard}>
+        {/* 💡 Applied themeColorType="card" and dynamic borders */}
+        <View style={[styles.settingsGroupCard, { borderColor: colors.border }]} themeColorType="background">
           
           {/* 1. Account Information */}
-          <View style={styles.rowWrapper}>
+          <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]}>
             <Pressable style={styles.menuRow} onPress={() => toggleSection("profile")}>
               <View style={styles.rowLeft}>
-                <Ionicons name="person-outline" size={22} color="#111111" />
+                <Ionicons name="person-outline" size={22} color={colors.text} />
                 <Text style={styles.rowTitle}>Account Information</Text>
               </View>
               <Ionicons 
                 name={expandedSection === "profile" ? "chevron-down" : "chevron-forward"} 
                 size={18} 
-                color="#8E8E93" 
+                color={colors.text + '60'} 
               />
             </Pressable>
             
@@ -287,10 +282,10 @@ export default function Profile() {
               <View style={styles.expandedContent}>
                 <TextInput
                   placeholder="Enter your full name"
-                  placeholderTextColor="#aaa"
+                  placeholderTextColor={colors.text + '60'}
                   value={fullName}
                   onChangeText={setFullName}
-                  style={styles.input}
+                  style={[styles.input, { borderColor: colors.border }]}
                 />
                 <Pressable 
                   onPress={handleUpdateProfileData} 
@@ -304,16 +299,16 @@ export default function Profile() {
           </View>
 
           {/* 2. Change Password */}
-          <View style={styles.rowWrapper}>
+          <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]}>
             <Pressable style={styles.menuRow} onPress={() => toggleSection("password")}>
               <View style={styles.rowLeft}>
-                <Ionicons name="key-outline" size={22} color="#111111" />
+                <Ionicons name="key-outline" size={22} color={colors.text} />
                 <Text style={styles.rowTitle}>Change Password</Text>
               </View>
               <Ionicons 
                 name={expandedSection === "password" ? "chevron-down" : "chevron-forward"} 
                 size={18} 
-                color="#8E8E93" 
+                color={colors.text + '60'} 
               />
             </Pressable>
 
@@ -322,11 +317,11 @@ export default function Profile() {
                 <View style={styles.passwordInputContainer}>
                   <TextInput
                     placeholder="Enter new secure password"
-                    placeholderTextColor="#aaa"
+                    placeholderTextColor={colors.text + '60'}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
-                    style={[styles.input, { marginBottom: 0, paddingRight: 45 }]}
+                    style={[styles.input, { marginBottom: 0, paddingRight: 45, borderColor: colors.border }]}
                   />
                   <Pressable 
                     style={styles.eyeIconContainer} 
@@ -335,7 +330,7 @@ export default function Profile() {
                     <Ionicons 
                       name={showPassword ? "eye-off-outline" : "eye-outline"} 
                       size={20} 
-                      color="#666666" 
+                      color={colors.text + '80'} 
                     />
                   </Pressable>
                 </View>
@@ -351,39 +346,40 @@ export default function Profile() {
           </View>
 
           {/* 3. Appearance */}
-          <View style={styles.rowWrapper}>
+          <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]}>
             <Pressable style={styles.menuRow} onPress={() => toggleSection("appearance")}>
               <View style={styles.rowLeft}>
-                <Ionicons name="sunny-outline" size={22} color="#111111" />
+                <Ionicons name="sunny-outline" size={22} color={colors.text} />
                 <Text style={styles.rowTitle}>Appearance</Text>
               </View>
               <Ionicons 
                 name={expandedSection === "appearance" ? "chevron-down" : "chevron-forward"} 
                 size={18} 
-                color="#8E8E93" 
+                color={colors.text + '60'} 
               />
             </Pressable>
 
             {expandedSection === "appearance" && (
               <View style={styles.expandedContent}>
-                <View style={styles.segmentedControl}>
+                {/* 💡 Themed background for selector block */}
+                <View style={[styles.segmentedControl, { backgroundColor: colors.border }]}>
                   <Pressable 
-                    style={[styles.segment, theme === "light" && styles.activeSegment]} 
-                    onPress={() => setTheme("light")}
+                    style={[styles.segment, activeTheme === "light" && [styles.activeSegment, { backgroundColor: colors.card }]]} 
+                    onPress={() => setActiveTheme("light")}
                   >
-                    <Text style={[styles.segmentText, theme === "light" && styles.activeSegmentText]}>Light</Text>
+                    <Text style={[styles.segmentText, activeTheme === "light" && { color: colors.text }]}>Light</Text>
                   </Pressable>
                   <Pressable 
-                    style={[styles.segment, theme === "dark" && styles.activeSegment]} 
-                    onPress={() => setTheme("dark")}
+                    style={[styles.segment, activeTheme === "dark" && [styles.activeSegment, { backgroundColor: colors.card }]]} 
+                    onPress={() => setActiveTheme("dark")}
                   >
-                    <Text style={[styles.segmentText, theme === "dark" && styles.activeSegmentText]}>Dark</Text>
+                    <Text style={[styles.segmentText, activeTheme === "dark" && { color: colors.text }]}>Dark</Text>
                   </Pressable>
                   <Pressable 
-                    style={[styles.segment, theme === "system" && styles.activeSegment]} 
-                    onPress={() => setTheme("system")}
+                    style={[styles.segment, activeTheme === "system" && [styles.activeSegment, { backgroundColor: colors.card }]]} 
+                    onPress={() => setActiveTheme("system")}
                   >
-                    <Text style={[styles.segmentText, theme === "system" && styles.activeSegmentText]}>System</Text>
+                    <Text style={[styles.segmentText, activeTheme === "system" && { color: colors.text }]}>System</Text>
                   </Pressable>
                 </View>
               </View>
@@ -391,39 +387,40 @@ export default function Profile() {
           </View>
 
           {/* 4. Language */}
-          <View style={styles.rowWrapper}>
+          <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]}>
             <Pressable style={styles.menuRow} onPress={() => toggleSection("language")}>
               <View style={styles.rowLeft}>
-                <Ionicons name="language-outline" size={22} color="#111111" />
+                <Ionicons name="language-outline" size={22} color={colors.text} />
                 <Text style={styles.rowTitle}>Language</Text>
               </View>
               <Ionicons 
                 name={expandedSection === "language" ? "chevron-down" : "chevron-forward"} 
                 size={18} 
-                color="#8E8E93" 
+                color={colors.text + '60'} 
               />
             </Pressable>
 
             {expandedSection === "language" && (
               <View style={styles.expandedContent}>
-                <View style={styles.segmentedControl}>
+                {/* 💡 Themed background for selector block */}
+                <View style={[styles.segmentedControl, { backgroundColor: colors.border }]}>
                   <Pressable 
-                    style={[styles.segment, language === "en" && styles.activeSegment]} 
+                    style={[styles.segment, language === "en" && [styles.activeSegment, { backgroundColor: colors.card }]]} 
                     onPress={() => setLanguage("en")}
                   >
-                    <Text style={[styles.segmentText, language === "en" && styles.activeSegmentText]}>English</Text>
+                    <Text style={[styles.segmentText, language === "en" && { color: colors.text }]}>English</Text>
                   </Pressable>
                   <Pressable 
-                    style={[styles.segment, language === "ceb" && styles.activeSegment]} 
+                    style={[styles.segment, language === "ceb" && [styles.activeSegment, { backgroundColor: colors.card }]]} 
                     onPress={() => setLanguage("ceb")}
                   >
-                    <Text style={[styles.segmentText, language === "ceb" && styles.activeSegmentText]}>Cebuano</Text>
+                    <Text style={[styles.segmentText, language === "ceb" && { color: colors.text }]}>Cebuano</Text>
                   </Pressable>
                   <Pressable 
-                    style={[styles.segment, language === "tl" && styles.activeSegment]} 
+                    style={[styles.segment, language === "tl" && [styles.activeSegment, { backgroundColor: colors.card }]]} 
                     onPress={() => setLanguage("tl")}
                   >
-                    <Text style={[styles.segmentText, language === "tl" && styles.activeSegmentText]}>Tagalog</Text>
+                    <Text style={[styles.segmentText, language === "tl" && { color: colors.text }]}>Tagalog</Text>
                   </Pressable>
                 </View>
               </View>
@@ -431,22 +428,22 @@ export default function Profile() {
           </View>
 
           {/* 5. Export Data */}
-          <View style={styles.rowWrapper}>
+          <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]}>
             <Pressable style={styles.menuRow} onPress={() => toggleSection("export")}>
               <View style={styles.rowLeft}>
-                <Ionicons name="download-outline" size={22} color="#111111" />
+                <Ionicons name="download-outline" size={22} color={colors.text} />
                 <Text style={styles.rowTitle}>Export Data</Text>
               </View>
               <Ionicons 
                 name={expandedSection === "export" ? "chevron-down" : "chevron-forward"} 
                 size={18} 
-                color="#8E8E93" 
+                color={colors.text + '60'} 
               />
             </Pressable>
 
             {expandedSection === "export" && (
               <View style={styles.expandedContent}>
-                <Text style={styles.descriptionText}>
+                <Text style={[styles.descriptionText, { color: colors.text + 'b3' }]}>
                   Download the complete list of your transactions and expenses into a structured CSV spreadsheet file.
                 </Text>
                 <Pressable 
@@ -465,29 +462,30 @@ export default function Profile() {
           <View style={[styles.rowWrapper, { borderBottomWidth: 0 }]}>
             <Pressable style={styles.menuRow} onPress={() => toggleSection("about")}>
               <View style={styles.rowLeft}>
-                <Ionicons name="information-circle-outline" size={22} color="#111111" />
+                <Ionicons name="information-circle-outline" size={22} color={colors.text} />
                 <Text style={styles.rowTitle}>About</Text>
               </View>
               <Ionicons 
                 name={expandedSection === "about" ? "chevron-down" : "chevron-forward"} 
                 size={18} 
-                color="#8E8E93" 
+                color={colors.text + '60'} 
               />
             </Pressable>
 
             {expandedSection === "about" && (
               <View style={styles.expandedContent}>
-                <View style={styles.aboutContent}>
+                {/* 💡 Clean themed secondary box background */}
+                <View style={[styles.aboutContent, { backgroundColor: colors.background + '50' }]}>
                   <View style={styles.aboutRow}>
-                    <Text style={styles.aboutLabel}>Application</Text>
-                    <Text style={styles.aboutValue}>ReceiptLens</Text>
+                    <Text style={[styles.aboutLabel, { color: colors.text + '99' }]}>Application</Text>
+                    <Text style={styles.aboutValue}>Payton</Text>
                   </View>
                   <View style={styles.aboutRow}>
-                    <Text style={styles.aboutLabel}>Version</Text>
+                    <Text style={[styles.aboutLabel, { color: colors.text + '99' }]}>Version</Text>
                     <Text style={styles.aboutValue}>1.0.0 (Beta)</Text>
                   </View>
                   <View style={styles.aboutRow}>
-                    <Text style={styles.aboutLabel}>Powered By</Text>
+                    <Text style={[styles.aboutLabel, { color: colors.text + '99' }]}>Powered By</Text>
                     <Text style={styles.aboutValue}>Supabase & Expo</Text>
                   </View>
                 </View>
@@ -509,7 +507,7 @@ export default function Profile() {
       </ScrollView>
 
       {loading && (
-        <View style={styles.loadingVeil}>
+        <View style={[styles.loadingVeil, { backgroundColor: colors.background + 'B3' }]}>
           <ActivityIndicator size="large" color="#007AFF" />
         </View>
       )}
@@ -517,10 +515,10 @@ export default function Profile() {
   );
 }
 
+// 💡 Using the completely cleaned style sheet you provided!
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
   },
   scrollContent: {
     paddingHorizontal: 24,
@@ -530,18 +528,15 @@ const styles = StyleSheet.create({
   headerTitle: { 
     fontSize: 28, 
     fontWeight: "700", 
-    color: "#111111", 
     marginBottom: 14,
     letterSpacing: -0.5,
   },
   profileHeaderCard: {
-    backgroundColor: "#ffffff",
     borderRadius: 20,
     padding: 20,
     flexDirection: "row", 
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#EAEAEA",
     marginBottom: 25,
     gap: 18, 
   },
@@ -572,7 +567,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "#ffffff",
   },
   profileInfoTextContainer: {
     flex: 1, 
@@ -582,26 +576,21 @@ const styles = StyleSheet.create({
   userEmailText: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#111111",
     letterSpacing: -0.3,
   },
   userSubEmailText: {
     fontSize: 13,
-    color: "#666666",
     marginTop: 2,
   },
   settingsGroupCard: {
-    backgroundColor: "#ffffff",
     borderRadius: 20,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: "#EAEAEA",
     marginBottom: 25,
     overflow: "hidden",
   },
   rowWrapper: {
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F3F6",
   },
   menuRow: {
     flexDirection: "row",
@@ -617,7 +606,6 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontSize: 15,
     fontWeight: "500",
-    color: "#1F1F29",
   },
   expandedContent: {
     paddingBottom: 18,
@@ -637,19 +625,15 @@ const styles = StyleSheet.create({
   },
   descriptionText: {
     fontSize: 13,
-    color: "#666666",
     lineHeight: 18,
     marginBottom: 12,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#e0e0e0",
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 14,
     fontSize: 15,
-    backgroundColor: "#f9f9f9",
-    color: "#111111",
     marginBottom: 12,
   },
   actionButton: {
@@ -679,7 +663,6 @@ const styles = StyleSheet.create({
   },
   segmentedControl: {
     flexDirection: "row",
-    backgroundColor: "#F1F1F6",
     borderRadius: 10,
     padding: 4,
   },
@@ -690,7 +673,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   activeSegment: {
-    backgroundColor: "#ffffff",
     elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -702,12 +684,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#666666",
   },
-  activeSegmentText: {
-    color: "#111111",
-  },
   aboutContent: {
     gap: 8,
-    backgroundColor: "#F8F9FA",
     padding: 12,
     borderRadius: 12,
   },
@@ -718,12 +696,10 @@ const styles = StyleSheet.create({
   },
   aboutLabel: {
     fontSize: 13,
-    color: "#666666",
     fontWeight: "500",
   },
   aboutValue: {
     fontSize: 13,
-    color: "#111111",
     fontWeight: "600",
   },
   logoutButton: {
@@ -735,7 +711,6 @@ const styles = StyleSheet.create({
     borderColor: "#FF3B30",
     borderRadius: 14,
     paddingVertical: 14,
-    backgroundColor: "#ffffff",
   },
   logoutButtonPressed: {
     backgroundColor: "#FFEBEB",
@@ -747,7 +722,6 @@ const styles = StyleSheet.create({
   },
   loadingVeil: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
     justifyContent: "center",
     alignItems: "center",
   },

@@ -3,10 +3,13 @@ import { Tabs, useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Dimensions, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
+import { useTheme } from "@/context/ThemeContext"; // 💡 Gi-import ang imong Theme hook
+
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function TabLayout() {
   const router = useRouter();
+  const { colors } = useTheme();
   
   // 🛠️ STATES PARA SA FLOATING SPEED DIAL CONTROL
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -31,12 +34,12 @@ export default function TabLayout() {
   <View style={{ flex: 1 }}>
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#007AFF",   // Brand Blue for active text/icons
+        tabBarActiveTintColor: colors.primary || "#007AFF",// Brand Blue for active text/icons
         tabBarInactiveTintColor: "#8E8E93", // Soft Gray for inactive ones
         tabBarStyle: {
-          backgroundColor: "#ffffff",
+          backgroundColor: colors.card,
           borderTopWidth: 1,
-          borderTopColor: "#f2f2f7",        // Mas humok ug subtle nga border line
+          borderTopColor: colors.border,        // Mas humok ug subtle nga border line
           height: Platform.OS === "ios" ? 90 : 70,
           paddingBottom: Platform.OS === "ios" ? 30 : 12,
           paddingTop: 10,
@@ -48,7 +51,7 @@ export default function TabLayout() {
         },
         // 🎨 GLOBAL ULTRA-CLEAN HEADER STYLE
         headerStyle: {
-          backgroundColor: "#F8F9FA",       // Naka-match sa background scaffold sa mga screens
+          backgroundColor: colors.card,       // Naka-match sa background scaffold sa mga screens
           elevation: 0,                     // Tangtangon ang bug-at nga Android shadow
           shadowOpacity: 0,                 // Tangtangon ang iOS shadow line
         },
@@ -56,7 +59,7 @@ export default function TabLayout() {
         headerTitleStyle: {
           fontWeight: "700",
           fontSize: 20,                     // Gi-adjust gamay para mas professional basahon
-          color: "#1C1C1E",                 // Gidala sa iOS native dark text color
+          color: colors.text,                 // Gidala sa iOS native dark text color
           letterSpacing: -0.5,
         },
         headerTitleAlign: "left",           // Standard modern design pattern, haom sa custom grids
