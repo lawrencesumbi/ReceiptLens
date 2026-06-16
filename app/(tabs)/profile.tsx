@@ -210,7 +210,7 @@ export default function Profile() {
       if (error) throw error;
 
       if (!transactions || transactions.length === 0) {
-        Alert.alert("Export Data", "Wala kay transaksyon nga pwedeng i-export karon.");
+        Alert.alert("Export Data", "You don't have any transactions to export right now.");
         return;
       }
 
@@ -228,7 +228,7 @@ export default function Profile() {
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(fileUri);
       } else {
-        Alert.alert("Export Data", `Na-save na ang imong file sa: ${fileUri}`);
+        Alert.alert("Export Data", `File saved to: ${fileUri}`);
       }
     } catch (err: any) {
       console.error("Export error:", err);
@@ -430,47 +430,9 @@ export default function Profile() {
             )}
           </View>
 
-          {/* 4. Language */}
-          <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]} themeColorType="card">
-            <Pressable style={styles.menuRow} onPress={() => toggleSection("language")}>
-              <View style={styles.rowLeft} themeColorType="card">
-                <Ionicons name="language-outline" size={22} color={colors.text} />
-                <Text style={styles.rowTitle}>Language</Text>
-              </View>
-              <Ionicons 
-                name={expandedSection === "language" ? "chevron-down" : "chevron-forward"} 
-                size={18} 
-                color={colors.text + '60'} 
-              />
-            </Pressable>
+          
 
-            {expandedSection === "language" && (
-              <View style={styles.expandedContent} themeColorType="card">
-                <View style={[styles.segmentedControl, { backgroundColor: colors.border }]}>
-                  <Pressable 
-                    style={[styles.segment, language === "en" && [styles.activeSegment, { backgroundColor: colors.card }]]} 
-                    onPress={() => setLanguage("en")}
-                  >
-                    <Text style={[styles.segmentText, language === "en" && { color: colors.text }]}>English</Text>
-                  </Pressable>
-                  <Pressable 
-                    style={[styles.segment, language === "ceb" && [styles.activeSegment, { backgroundColor: colors.card }]]} 
-                    onPress={() => setLanguage("ceb")}
-                  >
-                    <Text style={[styles.segmentText, language === "ceb" && { color: colors.text }]}>Cebuano</Text>
-                  </Pressable>
-                  <Pressable 
-                    style={[styles.segment, language === "tl" && [styles.activeSegment, { backgroundColor: colors.card }]]} 
-                    onPress={() => setLanguage("tl")}
-                  >
-                    <Text style={[styles.segmentText, language === "tl" && { color: colors.text }]}>Tagalog</Text>
-                  </Pressable>
-                </View>
-              </View>
-            )}
-          </View>
-
-          {/* 5. Export Data */}
+          {/* 4. Export Data */}
           <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]} themeColorType="card">
             <Pressable style={styles.menuRow} onPress={() => toggleSection("export")}>
               <View style={styles.rowLeft} themeColorType="card">
@@ -501,7 +463,7 @@ export default function Profile() {
             )}
           </View>
 
-          {/* 6. About */}
+          {/* 5. About */}
           <View style={[styles.rowWrapper, { borderBottomWidth: 0 }]}themeColorType="card" >
             <Pressable style={styles.menuRow} onPress={() => toggleSection("about")}>
               <View style={styles.rowLeft} themeColorType="card">
