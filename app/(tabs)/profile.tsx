@@ -31,8 +31,10 @@ export default function Profile() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false); 
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [showOldPassword, setShowOldPassword] = useState(false); 
+  const [showNewPassword, setShowNewPassword] = useState(false); 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null); 
   const [language, setLanguage] = useState("ceb"); 
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -145,17 +147,36 @@ export default function Profile() {
   };
 
   const handleUpdatePassword = async () => {
-    if (!password || password.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters long.");
+    if (!oldPassword) {
+      Alert.alert("Error", "Please enter your old password.");
+      return;
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      Alert.alert("Error", "New password must be at least 6 characters long.");
       return;
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password: password });
+    
+    // Step 1: Verify the old password by re-authenticating the email
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: oldPassword,
+    });
+
+    if (signInError) {
+      setLoading(false);
+      Alert.alert("Authentication Failed", "The old password you entered is incorrect.");
+      return;
+    }
+
+    // Step 2: Update to the new secure password
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
     setLoading(false);
 
-    if (error) {
-      Alert.alert("Update Failed", error.message);
+    if (updateError) {
+      Alert.alert("Update Failed", updateError.message);
     } else {
       Alert.alert("Success", "Your password has been securely updated. You will now be logged out.", [
         {
@@ -164,7 +185,8 @@ export default function Profile() {
             setLoading(true);
             await supabase.auth.signOut();
             setLoading(false);
-            setPassword(""); 
+            setOldPassword(""); 
+            setNewPassword(""); 
             setExpandedSection(null);
             router.replace("/login");
           }
@@ -239,7 +261,6 @@ export default function Profile() {
         <Text style={styles.headerTitle}>Account Settings</Text>
 
         {/* --- Profile Header Avatar Block --- */}
-        {/* 💡 Applied themeColorType="card" and dynamic borders */}
         <View style={[styles.profileHeaderCard, { borderColor: colors.border, borderWidth: 0 }]} themeColorType="card">
           <Pressable style={styles.avatarContainer} onPress={handlePickAvatar} disabled={loading}>
             <View style={styles.avatarCircle}>
@@ -261,7 +282,6 @@ export default function Profile() {
         </View>
 
         {/* --- Main Settings Container --- */}
-        {/* 💡 Applied themeColorType="card" and dynamic borders */}
         <View style={[styles.settingsGroupCard, { borderColor: colors.border,borderWidth: 0 }]} themeColorType="card">
           
           {/* 1. Account Information */}
@@ -285,7 +305,7 @@ export default function Profile() {
                   placeholderTextColor={colors.text + '60'}
                   value={fullName}
                   onChangeText={setFullName}
-                  style={[styles.input, { borderColor: colors.border }]}
+                  style={[styles.input, { borderColor: colors.border, marginBottom: 12 }]}
                 />
                 <Pressable 
                   onPress={handleUpdateProfileData} 
@@ -314,30 +334,55 @@ export default function Profile() {
 
             {expandedSection === "password" && (
               <View style={styles.expandedContent} themeColorType="card">
+                
+                {/* Old Password Input */}
                 <View style={styles.passwordInputContainer} themeColorType="card">
                   <TextInput
-                    placeholder="Enter new secure password"
+                    placeholder="Enter old password"
                     placeholderTextColor={colors.text + '60'}
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
+                    value={oldPassword}
+                    onChangeText={setOldPassword}
+                    secureTextEntry={!showOldPassword}
                     style={[styles.input, { marginBottom: 0, paddingRight: 45, borderColor: colors.border }]}
                   />
                   <Pressable 
                     style={styles.eyeIconContainer} 
-                    onPress={() => setShowPassword(!showPassword)}
+                    onPress={() => setShowOldPassword(!showOldPassword)}
                   >
                     <Ionicons 
-                      name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                      name={showOldPassword ? "eye-off-outline" : "eye-outline"} 
                       size={20} 
                       color={colors.text + '80'} 
                     />
                   </Pressable>
                 </View>
+
+                {/* New Password Input */}
+                <View style={[styles.passwordInputContainer, { marginTop: 12 }]} themeColorType="card">
+                  <TextInput
+                    placeholder="Enter new password"
+                    placeholderTextColor={colors.text + '60'}
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    secureTextEntry={!showNewPassword}
+                    style={[styles.input, { marginBottom: 0, paddingRight: 45, borderColor: colors.border }]}
+                  />
+                  <Pressable 
+                    style={styles.eyeIconContainer} 
+                    onPress={() => setShowNewPassword(!showNewPassword)}
+                  >
+                    <Ionicons 
+                      name={showNewPassword ? "eye-off-outline" : "eye-outline"} 
+                      size={20} 
+                      color={colors.text + '80'} 
+                    />
+                  </Pressable>
+                </View>
+
                 <Pressable 
                   onPress={handleUpdatePassword}
                   disabled={loading}
-                  style={[styles.actionButton, styles.passwordButtonColor, loading && styles.disabledButton]}
+                  style={[styles.actionButton, styles.passwordButtonColor, { marginTop: 12 }, loading && styles.disabledButton]}
                 >
                   <Text style={styles.buttonText}>Update Password</Text>
                 </Pressable>
@@ -361,7 +406,6 @@ export default function Profile() {
 
             {expandedSection === "appearance" && (
               <View style={styles.expandedContent} themeColorType="card">
-                {/* 💡 Themed background for selector block */}
                 <View style={[styles.segmentedControl, { backgroundColor: colors.border }]}>
                   <Pressable 
                     style={[styles.segment, activeTheme === "light" && [styles.activeSegment, { backgroundColor: colors.card }]]} 
@@ -402,7 +446,6 @@ export default function Profile() {
 
             {expandedSection === "language" && (
               <View style={styles.expandedContent} themeColorType="card">
-                {/* 💡 Themed background for selector block */}
                 <View style={[styles.segmentedControl, { backgroundColor: colors.border }]}>
                   <Pressable 
                     style={[styles.segment, language === "en" && [styles.activeSegment, { backgroundColor: colors.card }]]} 
@@ -474,7 +517,6 @@ export default function Profile() {
 
             {expandedSection === "about" && (
               <View style={styles.expandedContent} themeColorType="card">
-                {/* 💡 Clean themed secondary box background */}
                 <View style={[styles.aboutContent, { backgroundColor: colors.card + '50' }]}>
                   <View style={styles.aboutRow} themeColorType="card">
                     <Text style={[styles.aboutLabel, { color: colors.text + '99' }]}>Application</Text>
@@ -515,7 +557,6 @@ export default function Profile() {
   );
 }
 
-// 💡 Using the completely cleaned style sheet you provided!
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -573,6 +614,10 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     justifyContent: "center",
   },
+  textRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   userEmailText: {
     fontSize: 18,
     fontWeight: "700",
@@ -614,7 +659,6 @@ const styles = StyleSheet.create({
   passwordInputContainer: {
     position: "relative",
     justifyContent: "center",
-    marginBottom: 12,
   },
   eyeIconContainer: {
     position: "absolute",
@@ -634,7 +678,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     fontSize: 15,
-    marginBottom: 12,
   },
   actionButton: {
     backgroundColor: "#007AFF",
