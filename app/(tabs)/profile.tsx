@@ -231,7 +231,7 @@ export default function Profile() {
   };
 
   return (
-    <View style={styles.container} themeColorType="card">
+    <View style={styles.container} themeColorType="background">
       <ScrollView 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -240,7 +240,7 @@ export default function Profile() {
 
         {/* --- Profile Header Avatar Block --- */}
         {/* 💡 Applied themeColorType="card" and dynamic borders */}
-        <View style={[styles.profileHeaderCard, { borderColor: colors.border }]} themeColorType="background">
+        <View style={[styles.profileHeaderCard, { borderColor: colors.border }]} themeColorType="card">
           <Pressable style={styles.avatarContainer} onPress={handlePickAvatar} disabled={loading}>
             <View style={styles.avatarCircle}>
               {avatarUrl ? (
@@ -254,7 +254,7 @@ export default function Profile() {
             </View>
           </Pressable>
 
-          <View style={styles.profileInfoTextContainer}>
+          <View style={styles.profileInfoTextContainer} themeColorType="card">
             <Text style={styles.userEmailText}>{fullName || email || "Active User"}</Text>
             {fullName ? <Text style={[styles.userSubEmailText, { color: colors.text + '99' }]}>{email}</Text> : null}
           </View>
@@ -262,12 +262,12 @@ export default function Profile() {
 
         {/* --- Main Settings Container --- */}
         {/* 💡 Applied themeColorType="card" and dynamic borders */}
-        <View style={[styles.settingsGroupCard, { borderColor: colors.border }]} themeColorType="background">
+        <View style={[styles.settingsGroupCard, { borderColor: colors.border }]} themeColorType="card">
           
           {/* 1. Account Information */}
-          <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]}>
+          <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]}themeColorType="card" >
             <Pressable style={styles.menuRow} onPress={() => toggleSection("profile")}>
-              <View style={styles.rowLeft}>
+              <View style={styles.rowLeft} themeColorType="card">
                 <Ionicons name="person-outline" size={22} color={colors.text} />
                 <Text style={styles.rowTitle}>Account Information</Text>
               </View>
@@ -279,7 +279,7 @@ export default function Profile() {
             </Pressable>
             
             {expandedSection === "profile" && (
-              <View style={styles.expandedContent}>
+              <View style={styles.expandedContent} themeColorType="card" >
                 <TextInput
                   placeholder="Enter your full name"
                   placeholderTextColor={colors.text + '60'}
@@ -299,9 +299,9 @@ export default function Profile() {
           </View>
 
           {/* 2. Change Password */}
-          <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]}>
+          <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]} themeColorType="card">
             <Pressable style={styles.menuRow} onPress={() => toggleSection("password")}>
-              <View style={styles.rowLeft}>
+              <View style={styles.rowLeft} themeColorType="card">
                 <Ionicons name="key-outline" size={22} color={colors.text} />
                 <Text style={styles.rowTitle}>Change Password</Text>
               </View>
@@ -313,8 +313,8 @@ export default function Profile() {
             </Pressable>
 
             {expandedSection === "password" && (
-              <View style={styles.expandedContent}>
-                <View style={styles.passwordInputContainer}>
+              <View style={styles.expandedContent} themeColorType="card">
+                <View style={styles.passwordInputContainer} themeColorType="card">
                   <TextInput
                     placeholder="Enter new secure password"
                     placeholderTextColor={colors.text + '60'}
@@ -346,9 +346,9 @@ export default function Profile() {
           </View>
 
           {/* 3. Appearance */}
-          <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]}>
+          <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]} themeColorType="card">
             <Pressable style={styles.menuRow} onPress={() => toggleSection("appearance")}>
-              <View style={styles.rowLeft}>
+              <View style={styles.rowLeft} themeColorType="card">
                 <Ionicons name="sunny-outline" size={22} color={colors.text} />
                 <Text style={styles.rowTitle}>Appearance</Text>
               </View>
@@ -360,7 +360,7 @@ export default function Profile() {
             </Pressable>
 
             {expandedSection === "appearance" && (
-              <View style={styles.expandedContent}>
+              <View style={styles.expandedContent} themeColorType="card">
                 {/* 💡 Themed background for selector block */}
                 <View style={[styles.segmentedControl, { backgroundColor: colors.border }]}>
                   <Pressable 
@@ -387,9 +387,9 @@ export default function Profile() {
           </View>
 
           {/* 4. Language */}
-          <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]}>
+          <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]} themeColorType="card">
             <Pressable style={styles.menuRow} onPress={() => toggleSection("language")}>
-              <View style={styles.rowLeft}>
+              <View style={styles.rowLeft} themeColorType="card">
                 <Ionicons name="language-outline" size={22} color={colors.text} />
                 <Text style={styles.rowTitle}>Language</Text>
               </View>
@@ -401,7 +401,7 @@ export default function Profile() {
             </Pressable>
 
             {expandedSection === "language" && (
-              <View style={styles.expandedContent}>
+              <View style={styles.expandedContent} themeColorType="card">
                 {/* 💡 Themed background for selector block */}
                 <View style={[styles.segmentedControl, { backgroundColor: colors.border }]}>
                   <Pressable 
@@ -428,9 +428,9 @@ export default function Profile() {
           </View>
 
           {/* 5. Export Data */}
-          <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]}>
+          <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]} themeColorType="card">
             <Pressable style={styles.menuRow} onPress={() => toggleSection("export")}>
-              <View style={styles.rowLeft}>
+              <View style={styles.rowLeft} themeColorType="card">
                 <Ionicons name="download-outline" size={22} color={colors.text} />
                 <Text style={styles.rowTitle}>Export Data</Text>
               </View>
@@ -442,7 +442,7 @@ export default function Profile() {
             </Pressable>
 
             {expandedSection === "export" && (
-              <View style={styles.expandedContent}>
+              <View style={styles.expandedContent} themeColorType="card">
                 <Text style={[styles.descriptionText, { color: colors.text + 'b3' }]}>
                   Download the complete list of your transactions and expenses into a structured CSV spreadsheet file.
                 </Text>
@@ -459,9 +459,9 @@ export default function Profile() {
           </View>
 
           {/* 6. About */}
-          <View style={[styles.rowWrapper, { borderBottomWidth: 0 }]}>
+          <View style={[styles.rowWrapper, { borderBottomWidth: 0 }]}themeColorType="card" >
             <Pressable style={styles.menuRow} onPress={() => toggleSection("about")}>
-              <View style={styles.rowLeft}>
+              <View style={styles.rowLeft} themeColorType="card">
                 <Ionicons name="information-circle-outline" size={22} color={colors.text} />
                 <Text style={styles.rowTitle}>About</Text>
               </View>
@@ -473,18 +473,18 @@ export default function Profile() {
             </Pressable>
 
             {expandedSection === "about" && (
-              <View style={styles.expandedContent}>
+              <View style={styles.expandedContent} themeColorType="card">
                 {/* 💡 Clean themed secondary box background */}
-                <View style={[styles.aboutContent, { backgroundColor: colors.background + '50' }]}>
-                  <View style={styles.aboutRow}>
+                <View style={[styles.aboutContent, { backgroundColor: colors.card + '50' }]}>
+                  <View style={styles.aboutRow} themeColorType="card">
                     <Text style={[styles.aboutLabel, { color: colors.text + '99' }]}>Application</Text>
                     <Text style={styles.aboutValue}>Payton</Text>
                   </View>
-                  <View style={styles.aboutRow}>
+                  <View style={styles.aboutRow} themeColorType="card">
                     <Text style={[styles.aboutLabel, { color: colors.text + '99' }]}>Version</Text>
                     <Text style={styles.aboutValue}>1.0.0 (Beta)</Text>
                   </View>
-                  <View style={styles.aboutRow}>
+                  <View style={styles.aboutRow} themeColorType="card">
                     <Text style={[styles.aboutLabel, { color: colors.text + '99' }]}>Powered By</Text>
                     <Text style={styles.aboutValue}>Supabase & Expo</Text>
                   </View>

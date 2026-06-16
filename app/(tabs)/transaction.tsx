@@ -1,3 +1,4 @@
+import { useTheme } from "@/context/ThemeContext"; // 💡 Gi-import ang imong Theme hook
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -16,34 +17,33 @@ import {
   UIManager,
   View,
 } from "react-native";
-import { supabase } from "../../utils/supabase"; // Siguroha nga husto ang path sa imong supabase client setup
+import { supabase } from "../../utils/supabase";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-// 8 Clean Categories with custom icons and colors
 const CATEGORY_CONFIG: { [key: string]: { icon: React.ComponentProps<typeof Ionicons>["name"]; color: string } } = {
-  "Food & Drinks": { icon: "fast-food-outline", color: "#FF9500" }, // Orange
-  "Groceries": { icon: "cart-outline", color: "#4CAF50" },         // Green
-  "Transportation": { icon: "car-outline", color: "#6366F1" },     // Indigo
-  "Shopping": { icon: "shirt-outline", color: "#FF2D55" },          // Pink
-  "Utilities": { icon: "flash-outline", color: "#007AFF" },         // Blue (Bills, Internet, VECO)
-  "Health": { icon: "heart-outline", color: "#FF3B30" },            // Red (Medicine, Clinics)
-  "Entertainment": { icon: "film-outline", color: "#AF52DE" },      // Purple (Movies, Gaming, Subs)
-  "Miscellaneous": { icon: "receipt-outline", color: "#8E8E93" },   // Gray (Catch-all for others)
+  "Food & Drinks": { icon: "fast-food-outline", color: "#FF9500" }, 
+  "Groceries": { icon: "cart-outline", color: "#4CAF50" },         
+  "Transportation": { icon: "car-outline", color: "#6366F1" },     
+  "Shopping": { icon: "shirt-outline", color: "#FF2D55" },          
+  "Utilities": { icon: "flash-outline", color: "#007AFF" },         
+  "Health": { icon: "heart-outline", color: "#FF3B30" },            
+  "Entertainment": { icon: "film-outline", color: "#AF52DE" },      
+  "Miscellaneous": { icon: "receipt-outline", color: "#8E8E93" },   
 };
 
 export default function TransactionScreen() {
+  const { colors } = useTheme(); // 💡 Gi-consume ang dynamic theme variables
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   
-  // --- DATABASE STATE ---
   const [transactions, setTransactions] = useState<any[]>([]);
 
-  // --- MODAL & FORM INPUT STATES ---
   const [modalVisible, setModalVisible] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -56,24 +56,18 @@ export default function TransactionScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
 
-  // Load ledger items upon screen mount
   useEffect(() => {
     fetchTransactions();
   }, []);
 
   useEffect(() => {
-    // Kung naay nadawat nga openModal gikan sa _layout.tsx
     if (params.openModal === "true") {
       setIsEditing(false);
       setModalVisible(true);
-
-      // Limpyohan nato ang URL params aron dili magsigeg open ang modal 
-      // inig balik-balik sa user ani nga screen
       router.setParams({ openModal: undefined });
     }
   }, [params.openModal]);
 
-  // --- BENEFIT 1: FETCH DATA FROM SUPABASE ---
   const fetchTransactions = async () => {
     try {
       setLoading(true);
@@ -97,7 +91,6 @@ export default function TransactionScreen() {
     }
   };
 
-  // --- BENEFIT 2: SAVE OR UPDATE ROUTINE ---
   const handleSaveTransaction = async () => {
     if (!merchant.trim() || !amount.trim()) {
       Alert.alert("Error", "Please enter a Store Name and Amount.");
@@ -114,7 +107,6 @@ export default function TransactionScreen() {
       setLoading(true);
 
       if (isEditing && editingId) {
-        // --- OPERATION: UPDATE ---
         const { data, error } = await supabase
           .from("transactions")
           .update({
@@ -134,7 +126,6 @@ export default function TransactionScreen() {
         }
         Alert.alert("Success", "Transaction updated successfully.");
       } else {
-        // --- OPERATION: INSERT ---
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("No authenticated user found.");
 
@@ -170,7 +161,6 @@ export default function TransactionScreen() {
     }
   };
 
-  // --- BENEFIT 3: DELETE ROUTINE ---
   const handleDeleteTransaction = (id: string) => {
     Alert.alert(
       "Delete Transaction",
@@ -207,7 +197,6 @@ export default function TransactionScreen() {
     );
   };
 
-  // Pre-fill form fields when triggered
   const startEditTransaction = (tx: any) => {
     setEditingId(tx.id);
     setMerchant(tx.merchant);
@@ -228,7 +217,6 @@ export default function TransactionScreen() {
     setModalVisible(false);
   };
 
-  // Smart Date Parsing to return Day Headers dynamically
   const formatGroupDate = (dateString: string) => {
     const txDate = new Date(dateString);
     const today = new Date();
@@ -241,7 +229,6 @@ export default function TransactionScreen() {
     return txDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   };
 
-  // Query configuration layout filter logic
   const filteredTransactions = transactions.filter(
     (item) =>
       item.merchant.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -258,18 +245,18 @@ export default function TransactionScreen() {
   const sections = Object.keys(groupedTransactions);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* --- Header & Search Bar Layout --- */}
       <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>Transactions</Text>
-        <View style={styles.searchBarContainer}>
-          <Ionicons name="search-outline" size={18} color="#8E8E93" style={styles.searchIcon} />
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Transactions</Text>
+        <View style={[styles.searchBarContainer, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+          <Ionicons name="search-outline" size={18} color={colors.text + "80"} style={styles.searchIcon} />
           <TextInput
             placeholder="Search merchant or category..."
-            placeholderTextColor="#A9A9B3"
+            placeholderTextColor={colors.text + "66"}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
           />
         </View>
       </View>
@@ -277,7 +264,7 @@ export default function TransactionScreen() {
       {/* --- Main Feed --- */}
       {loading && transactions.length === 0 ? (
         <View style={styles.loadingCenter}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={colors.primary || "#007AFF"} />
         </View>
       ) : (
         <FlatList
@@ -292,8 +279,8 @@ export default function TransactionScreen() {
           }}
           renderItem={({ item: dateGroup }) => (
             <View style={styles.sectionBlock}>
-              <Text style={styles.sectionHeading}>{dateGroup}</Text>
-              <View style={styles.groupCard}>
+              <Text style={[styles.sectionHeading, { color: colors.text + "99" }]}>{dateGroup}</Text>
+              <View style={[styles.groupCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 {groupedTransactions[dateGroup].map((tx: any, index: number, arr: any[]) => {
                   const isExpanded = expandedId === tx.id;
                   const isLastItem = index === arr.length - 1;
@@ -301,44 +288,43 @@ export default function TransactionScreen() {
                   const txTime = new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                   return (
-                    <View key={tx.id} style={[styles.rowWrapper, isLastItem && { borderBottomWidth: 0 }]}>
+                    <View key={tx.id} style={[styles.rowWrapper, { borderBottomColor: colors.border }, isLastItem && { borderBottomWidth: 0 }]}>
                       <Pressable style={styles.transactionRow} onPress={() => {
                         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                         setExpandedId(isExpanded ? null : tx.id);
                       }}>
                         <View style={styles.rowLeft}>
-                          <View style={[styles.iconCircle, { backgroundColor: config.color + "15" }]}>
+                          <View style={[styles.iconCircle, { backgroundColor: config.color + "1A" }]}>
                             <Ionicons name={config.icon} size={20} color={config.color} />
                           </View>
                           <View style={styles.textContainer}>
-                            <Text style={styles.merchantText} numberOfLines={1}>{tx.merchant}</Text>
-                            <Text style={styles.categoryText}>{tx.category}</Text>
+                            <Text style={[styles.merchantText, { color: colors.text }]} numberOfLines={1}>{tx.merchant}</Text>
+                            <Text style={[styles.categoryText, { color: colors.text + "80" }]}>{tx.category}</Text>
                           </View>
                         </View>
                         <View style={styles.rowRight}>
-                          <Text style={styles.amountText}>₱{Number(tx.amount).toFixed(2)}</Text>
-                          <Text style={styles.timeText}>{txTime}</Text>
+                          <Text style={[styles.amountText, { color: colors.text }]}>₱{Number(tx.amount).toFixed(2)}</Text>
+                          <Text style={[styles.timeText, { color: colors.text + "66" }]}>{txTime}</Text>
                         </View>
                       </Pressable>
 
-                      {/* Expandable Dashboard Control Drawer Toggle */}
+                      {/* Expandable Control Panel */}
                       {isExpanded && (
                         <View style={styles.expandedPanel}>
-                          <View style={styles.dividerLine} />
+                          <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
                           <View style={styles.detailsGrid}>
                             <View style={styles.detailItem}>
-                              <Text style={styles.detailLabel}>Payment Method</Text>
-                              <Text style={styles.detailValue}>{tx.payment_method}</Text>
+                              <Text style={[styles.detailLabel, { color: colors.text + "66" }]}>Payment Method</Text>
+                              <Text style={[styles.detailValue, { color: colors.text }]}>{tx.payment_method}</Text>
                             </View>
                             
-                            {/* Control Panel Actions Right Side Alignment */}
                             <View style={styles.actionButtonsGroup}>
-                              <Pressable style={styles.actionBtn} onPress={() => startEditTransaction(tx)}>
-                                <Ionicons name="create-outline" size={15} color="#007AFF" />
-                                <Text style={[styles.actionBtnText, { color: "#007AFF" }]}>Edit</Text>
+                              <Pressable style={[styles.actionBtn, { backgroundColor: colors.background }]} onPress={() => startEditTransaction(tx)}>
+                                <Ionicons name="create-outline" size={15} color={colors.primary || "#007AFF"} />
+                                <Text style={[styles.actionBtnText, { color: colors.primary || "#007AFF" }]}>Edit</Text>
                               </Pressable>
                               
-                              <Pressable style={styles.actionBtn} onPress={() => handleDeleteTransaction(tx.id)}>
+                              <Pressable style={[styles.actionBtn, { backgroundColor: colors.background }]} onPress={() => handleDeleteTransaction(tx.id)}>
                                 <Ionicons name="trash-outline" size={15} color="#FF3B30" />
                                 <Text style={[styles.actionBtnText, { color: "#FF3B30" }]}>Delete</Text>
                               </Pressable>
@@ -354,8 +340,8 @@ export default function TransactionScreen() {
           )}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons name="receipt-outline" size={48} color="#D1D1D6" />
-              <Text style={styles.emptyText}>No transactions recorded yet.</Text>
+              <Ionicons name="receipt-outline" size={48} color={colors.text + "33"} />
+              <Text style={[styles.emptyText, { color: colors.text + "66" }]}>No transactions recorded yet.</Text>
             </View>
           }
         />
@@ -364,36 +350,79 @@ export default function TransactionScreen() {
       {/* --- DYNAMIC SLIDE FORM PANEL MODAL --- */}
       <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={closeModal}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
+          <View style={[styles.modalContainer, { backgroundColor: colors.card }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{isEditing ? "Edit Transaction" : "Add Transaction"}</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{isEditing ? "Edit Transaction" : "Add Transaction"}</Text>
               <Pressable onPress={closeModal} disabled={loading}>
-                <Ionicons name="close-circle" size={24} color="#8E8E93" />
+                <Ionicons name="close-circle" size={24} color={colors.text + "66"} />
               </Pressable>
             </View>
 
-            <Text style={styles.inputLabel}>Store / Merchant</Text>
-            <TextInput placeholder="e.g., McDonald's, Shell, Grab" placeholderTextColor="#aaa" value={merchant} onChangeText={setMerchant} editable={!loading} style={styles.modalInput} />
+            <Text style={[styles.inputLabel, { color: colors.text + "B3" }]}>Store / Merchant</Text>
+            <TextInput 
+              placeholder="e.g., McDonald's, Shell, Grab" 
+              placeholderTextColor={colors.text + "4D"} 
+              value={merchant} 
+              onChangeText={setMerchant} 
+              editable={!loading} 
+              style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} 
+            />
 
-            <Text style={styles.inputLabel}>Amount (₱)</Text>
-            <TextInput placeholder="0.00" placeholderTextColor="#aaa" keyboardType="numeric" value={amount} onChangeText={setAmount} editable={!loading} style={styles.modalInput} />
+            <Text style={[styles.inputLabel, { color: colors.text + "B3" }]}>Amount (₱)</Text>
+            <TextInput 
+              placeholder="0.00" 
+              placeholderTextColor={colors.text + "4D"} 
+              keyboardType="numeric" 
+              value={amount} 
+              onChangeText={setAmount} 
+              editable={!loading} 
+              style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} 
+            />
 
-            <Text style={styles.inputLabel}>Category</Text>
+            <Text style={[styles.inputLabel, { color: colors.text + "B3" }]}>Category</Text>
             <View style={styles.selectorGroup}>
-              {Object.keys(CATEGORY_CONFIG).map((cat) => (
-                <Pressable key={cat} style={[styles.selectorBadge, category === cat && styles.activeBadge]} onPress={() => setCategory(cat)} disabled={loading}>
-                  <Text style={[styles.badgeText, category === cat && styles.activeBadgeText]}>{cat}</Text>
-                </Pressable>
-              ))}
+              {Object.keys(CATEGORY_CONFIG).map((cat) => {
+                const isSelected = category === cat;
+                return (
+                  <Pressable 
+                    key={cat} 
+                    style={[
+                      styles.selectorBadge, 
+                      { backgroundColor: colors.background }, 
+                      isSelected && { backgroundColor: colors.primary || "#007AFF" }
+                    ]} 
+                    onPress={() => setCategory(cat)} 
+                    disabled={loading}
+                  >
+                    <Text style={[styles.badgeText, { color: colors.text + "99" }, isSelected && { color: "#ffffff", fontWeight: "600" }]}>
+                      {cat}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
 
-            <Text style={styles.inputLabel}>Payment Method</Text>
+            <Text style={[styles.inputLabel, { color: colors.text + "B3" }]}>Payment Method</Text>
             <View style={styles.selectorGroup}>
-              {["Cash", "GCash", "Maya", "Credit Card"].map((method) => (
-                <Pressable key={method} style={[styles.selectorBadge, paymentMethod === method && styles.activeBadge]} onPress={() => setPaymentMethod(method)} disabled={loading}>
-                  <Text style={[styles.badgeText, paymentMethod === method && styles.activeBadgeText]}>{method}</Text>
-                </Pressable>
-              ))}
+              {["Cash", "GCash", "Maya", "Credit Card"].map((method) => {
+                const isSelected = paymentMethod === method;
+                return (
+                  <Pressable 
+                    key={method} 
+                    style={[
+                      styles.selectorBadge, 
+                      { backgroundColor: colors.background }, 
+                      isSelected && { backgroundColor: colors.primary || "#007AFF" }
+                    ]} 
+                    onPress={() => setPaymentMethod(method)} 
+                    disabled={loading}
+                  >
+                    <Text style={[styles.badgeText, { color: colors.text + "99" }, isSelected && { color: "#ffffff", fontWeight: "600" }]}>
+                      {method}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
 
             <Pressable style={[styles.saveBtn, loading && { opacity: 0.6 }]} onPress={handleSaveTransaction} disabled={loading}>
@@ -407,50 +436,47 @@ export default function TransactionScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F8F9FA" },
+  container: { flex: 1 },
   headerContainer: { paddingHorizontal: 24, paddingTop: 5, paddingBottom: 12 },
-  headerTitle: { fontSize: 26, fontWeight: "700", color: "#111111", marginBottom: 14, marginTop: 40,},
-  searchBarContainer: { flexDirection: "row", alignItems: "center", backgroundColor: "#EEEEEF", borderRadius: 12, paddingHorizontal: 12, height: 44 },
+  headerTitle: { fontSize: 26, fontWeight: "700", marginBottom: 14, marginTop: Platform.OS === "ios" ? 20 : 40 },
+  searchBarContainer: { flexDirection: "row", alignItems: "center", borderRadius: 12, paddingHorizontal: 12, height: 44 },
   searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, fontSize: 15, color: "#111111" },
-  scrollContent: { paddingHorizontal: 24, paddingBottom: 10 },
+  searchInput: { flex: 1, fontSize: 15 },
+  scrollContent: { paddingHorizontal: 24, paddingBottom: 20 },
   loadingCenter: { flex: 1, justifyContent: "center", alignItems: "center" },
   sectionBlock: { marginBottom: 20 },
-  sectionHeading: { fontSize: 14, fontWeight: "600", color: "#8E8E93", marginBottom: 8, paddingLeft: 4 },
-  groupCard: { backgroundColor: "#ffffff", borderRadius: 20, paddingHorizontal: 16, borderWidth: 1, borderColor: "#EAEAEA", overflow: "hidden" },
-  rowWrapper: { borderBottomWidth: 1, borderBottomColor: "#F3F3F6" },
+  sectionHeading: { fontSize: 14, fontWeight: "600", marginBottom: 8, paddingLeft: 4 },
+  groupCard: { borderRadius: 20, paddingHorizontal: 16, borderWidth: 1, overflow: "hidden" },
+  rowWrapper: { borderBottomWidth: 1 },
   transactionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 14 },
   rowLeft: { flexDirection: "row", alignItems: "center", flex: 1, gap: 12 },
   iconCircle: { width: 40, height: 40, borderRadius: 20, justifyContent: "center", alignItems: "center" },
   textContainer: { flex: 1, justifyContent: "center" },
-  merchantText: { fontSize: 15, fontWeight: "600", color: "#1F1F29", marginBottom: 2 },
-  categoryText: { fontSize: 12, color: "#8E8E93" },
+  merchantText: { fontSize: 15, fontWeight: "600", marginBottom: 2 },
+  categoryText: { fontSize: 12 },
   rowRight: { alignItems: "flex-end", marginLeft: 10 },
-  amountText: { fontSize: 15, fontWeight: "700", color: "#111111", marginBottom: 2 },
-  timeText: { fontSize: 12, color: "#8E8E93" },
+  amountText: { fontSize: 15, fontWeight: "700", marginBottom: 2 },
+  timeText: { fontSize: 12 },
   expandedPanel: { paddingBottom: 14 },
-  dividerLine: { height: 1, backgroundColor: "#F3F3F6", marginBottom: 12 },
+  dividerLine: { height: 1, marginBottom: 12 },
   detailsGrid: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 4 },
   detailItem: { flex: 1 },
-  detailLabel: { fontSize: 11, fontWeight: "500", color: "#8E8E93", textTransform: "uppercase", marginBottom: 4 },
-  detailValue: { fontSize: 13, fontWeight: "600", color: "#111111" },
+  detailLabel: { fontSize: 11, fontWeight: "500", textTransform: "uppercase", marginBottom: 4 },
+  detailValue: { fontSize: 13, fontWeight: "600" },
   actionButtonsGroup: { flexDirection: "row", alignItems: "center", gap: 12 },
-  actionBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, backgroundColor: "#F1F1F6" },
+  actionBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 },
   actionBtnText: { fontSize: 13, fontWeight: "600" },
   emptyContainer: { alignItems: "center", justifyContent: "center", paddingTop: 60, gap: 8 },
-  emptyText: { fontSize: 14, color: "#8E8E93", fontWeight: "500", textAlign: "center" },
-  fabButton: { position: "absolute", bottom: 100, right: 24, backgroundColor: "#007AFF", width: 56, height: 56, borderRadius: 28, justifyContent: "center", alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 6 },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0, 0, 0, 0.4)", justifyContent: "flex-end" },
-  modalContainer: { backgroundColor: "#ffffff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, maxHeight: "85%" },
+  emptyText: { fontSize: 14, fontWeight: "500", textAlign: "center" },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0, 0, 0, 0.6)", justifyContent: "flex-end" },
+  modalContainer: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, maxHeight: "85%" },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontWeight: "700", color: "#111111" },
-  inputLabel: { fontSize: 13, fontWeight: "600", color: "#666", marginBottom: 6, marginTop: 10 },
-  modalInput: { borderWidth: 1, borderColor: "#EAEAEA", borderRadius: 10, padding: 12, fontSize: 15, backgroundColor: "#F8F9FA", color: "#111111" },
+  modalTitle: { fontSize: 20, fontWeight: "700" },
+  inputLabel: { fontSize: 13, fontWeight: "600", marginBottom: 6, marginTop: 10 },
+  modalInput: { borderWidth: 1, borderRadius: 10, padding: 12, fontSize: 15 },
   selectorGroup: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginVertical: 6 },
-  selectorBadge: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: "#F1F1F6" },
-  activeBadge: { backgroundColor: "#007AFF" },
-  badgeText: { fontSize: 13, color: "#666666", fontWeight: "500" },
-  activeBadgeText: { color: "#ffffff", fontWeight: "600" },
+  selectorBadge: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20 },
+  badgeText: { fontSize: 13, fontWeight: "500" },
   saveBtn: { backgroundColor: "#34C759", borderRadius: 12, alignItems: "center", marginTop: 24, paddingVertical: 14 },
   saveBtnText: { color: "#ffffff", fontSize: 16, fontWeight: "600" },
 });
