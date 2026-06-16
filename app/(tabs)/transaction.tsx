@@ -249,7 +249,7 @@ export default function TransactionScreen() {
       {/* --- Header & Search Bar Layout --- */}
       <View style={styles.headerContainer}>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Transactions</Text>
-        <View style={[styles.searchBarContainer, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+        <View style={[styles.searchBarContainer, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 0 }]}>
           <Ionicons name="search-outline" size={18} color={colors.text + "80"} style={styles.searchIcon} />
           <TextInput
             placeholder="Search merchant or category..."
@@ -280,7 +280,7 @@ export default function TransactionScreen() {
           renderItem={({ item: dateGroup }) => (
             <View style={styles.sectionBlock}>
               <Text style={[styles.sectionHeading, { color: colors.text + "99" }]}>{dateGroup}</Text>
-              <View style={[styles.groupCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={[styles.groupCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 0 }]}>
                 {groupedTransactions[dateGroup].map((tx: any, index: number, arr: any[]) => {
                   const isExpanded = expandedId === tx.id;
                   const isLastItem = index === arr.length - 1;

@@ -240,7 +240,7 @@ export default function Profile() {
 
         {/* --- Profile Header Avatar Block --- */}
         {/* 💡 Applied themeColorType="card" and dynamic borders */}
-        <View style={[styles.profileHeaderCard, { borderColor: colors.border }]} themeColorType="card">
+        <View style={[styles.profileHeaderCard, { borderColor: colors.border, borderWidth: 0 }]} themeColorType="card">
           <Pressable style={styles.avatarContainer} onPress={handlePickAvatar} disabled={loading}>
             <View style={styles.avatarCircle}>
               {avatarUrl ? (
@@ -262,7 +262,7 @@ export default function Profile() {
 
         {/* --- Main Settings Container --- */}
         {/* 💡 Applied themeColorType="card" and dynamic borders */}
-        <View style={[styles.settingsGroupCard, { borderColor: colors.border }]} themeColorType="card">
+        <View style={[styles.settingsGroupCard, { borderColor: colors.border,borderWidth: 0 }]} themeColorType="card">
           
           {/* 1. Account Information */}
           <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]}themeColorType="card" >
