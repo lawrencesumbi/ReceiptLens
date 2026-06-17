@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   loadingText: { marginTop: 10, fontSize: 14 },
 
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 24 },
+  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   subGreeting: { fontSize: 14, fontWeight: "500" },
   mainGreeting: { fontSize: 26, fontWeight: "700", marginTop: 2 },
   
@@ -254,14 +254,14 @@ const styles = StyleSheet.create({
   walletCard: {
     borderRadius: 24,
     padding: 24,
-    marginBottom: 26,
+    marginBottom: 13,
     position: "relative", 
     zIndex: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
-    elevation: 3,
+    
   },
   walletHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
     left: 24,
     borderRadius: 14,
     width: 180,
-    elevation: 5,
+    
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
   recentSectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 12, marginBottom: 12 },
   viewAllText: { fontSize: 14, fontWeight: "600" },
 
-  actionsGrid: { flexDirection: "row", justifyContent: "space-between", marginBottom: 26, gap: 12 },
+  actionsGrid: { flexDirection: "row", justifyContent: "space-between", marginBottom: 13, gap: 12 },
   actionButton: {
     flex: 1,
     borderRadius: 20,
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.02,
     shadowRadius: 4,
-    elevation: 1,
+    
   },
   actionIconCircle: { width: 48, height: 48, borderRadius: 24, justifyContent: "center", alignItems: "center", marginBottom: 8 },
   actionLabel: { fontSize: 12, fontWeight: "600" },
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.01,
     shadowRadius: 3,
-    elevation: 1,
+    
   },
   itemLeftGroup: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
   itemIconBox: { width: 40, height: 40, borderRadius: 12, justifyContent: "center", alignItems: "center" },

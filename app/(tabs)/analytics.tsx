@@ -1,7 +1,7 @@
 import { useTheme } from "@/context/ThemeContext"; // 💡 Gi-import ang imong Theme hook
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Dimensions, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, Dimensions, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "../../utils/supabase";
 
@@ -20,6 +20,7 @@ export default function AnalyticsScreen() {
   const { colors } = useTheme(); // 💡 Gi-consume ang custom design theme elements
   
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false); // 🔄 State para sa pull-to-refresh
   const [totalSpending, setTotalSpending] = useState(0);
   const [receiptCount, setReceiptCount] = useState(0);
   const [topCategory, setTopCategory] = useState({ name: "None", amount: 0 });
@@ -40,9 +41,10 @@ export default function AnalyticsScreen() {
     return customColors[cat] || "#34C759"; // Default Green
   };
 
-  const fetchAnalyticsData = async (range: FilterRange = filterRange) => {
+  const fetchAnalyticsData = async (range: FilterRange = filterRange, isRefreshing = false) => {
     try {
-      setLoading(true);
+      if (!isRefreshing) setLoading(true); // Ayaw ipakita ang full screen loader kung nag-pull-to-refresh lang
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
@@ -131,8 +133,15 @@ export default function AnalyticsScreen() {
       console.error("Error fetching analytics:", e);
     } finally {
       setLoading(false);
+      setRefreshing(false); // 🔄 Iundang ang loading animation sa refresh control
     }
   };
+
+  // 🔄 Trigger function inig scroll-down-to-refresh sa user
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchAnalyticsData(filterRange, true);
+  }, [filterRange]);
 
   useEffect(() => {
     fetchAnalyticsData(filterRange);
@@ -163,7 +172,18 @@ export default function AnalyticsScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            tintColor={colors.primary || "#007AFF"} // Para sa iOS loader color
+            colors={[colors.primary || "#007AFF"]} // Para sa Android loader color
+          />
+        }
+      >
         
         {/* DROPDOWN SELECTOR BAR CODES */}
         <View style={styles.dropdownSectionContainer}>
@@ -322,7 +342,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     width: 140,
     padding: 4,
-    elevation: 6,
+    
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
@@ -352,7 +372,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.02,
     shadowRadius: 10,
-    elevation: 1,
+    
   },
   headerLabel: { fontSize: 13, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.3 },
   headerAmount: { fontSize: 34, fontWeight: "700", marginTop: 8 },
@@ -367,7 +387,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.02,
     shadowRadius: 10,
-    elevation: 1,
+    
   },
   bentoIconWrapper: {
     width: 36,
@@ -387,7 +407,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.02,
     shadowRadius: 10,
-    elevation: 1,
+    
   },
   sectionTitle: { fontSize: 18, fontWeight: "700", marginBottom: 16 },
   emptyBox: {
