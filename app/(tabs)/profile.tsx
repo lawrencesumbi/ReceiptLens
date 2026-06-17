@@ -282,10 +282,10 @@ export default function Profile() {
         </View>
 
         {/* --- Main Settings Container --- */}
-        <View style={[styles.settingsGroupCard, { borderColor: colors.border,borderWidth: 0 }]} themeColorType="card">
+        <View style={[styles.settingsGroupCard, { borderColor: colors.border, borderWidth: 0 }]} themeColorType="card">
           
           {/* 1. Account Information */}
-          <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]}themeColorType="card" >
+          <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]} themeColorType="card" >
             <Pressable style={styles.menuRow} onPress={() => toggleSection("profile")}>
               <View style={styles.rowLeft} themeColorType="card">
                 <Ionicons name="person-outline" size={22} color={colors.text} />
@@ -430,8 +430,6 @@ export default function Profile() {
             )}
           </View>
 
-          
-
           {/* 4. Export Data */}
           <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]} themeColorType="card">
             <Pressable style={styles.menuRow} onPress={() => toggleSection("export")}>
@@ -464,7 +462,7 @@ export default function Profile() {
           </View>
 
           {/* 5. About */}
-          <View style={[styles.rowWrapper, { borderBottomWidth: 0 }]}themeColorType="card" >
+          <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]} themeColorType="card" >
             <Pressable style={styles.menuRow} onPress={() => toggleSection("about")}>
               <View style={styles.rowLeft} themeColorType="card">
                 <Ionicons name="information-circle-outline" size={22} color={colors.text} />
@@ -482,7 +480,7 @@ export default function Profile() {
                 <View style={[styles.aboutContent, { backgroundColor: colors.card + '50' }]}>
                   <View style={styles.aboutRow} themeColorType="card">
                     <Text style={[styles.aboutLabel, { color: colors.text + '99' }]}>Application</Text>
-                    <Text style={styles.aboutValue}>Payton</Text>
+                    <Text style={styles.aboutValue}>ReceiptLens</Text>
                   </View>
                   <View style={styles.aboutRow} themeColorType="card">
                     <Text style={[styles.aboutLabel, { color: colors.text + '99' }]}>Version</Text>
@@ -493,6 +491,94 @@ export default function Profile() {
                     <Text style={styles.aboutValue}>Supabase & Expo</Text>
                   </View>
                 </View>
+              </View>
+            )}
+          </View>
+
+          {/* 6. Terms of Service Row */}
+          <View style={[styles.rowWrapper, { borderBottomColor: colors.border }]} themeColorType="card" >
+            <Pressable style={styles.menuRow} onPress={() => toggleSection("tos")}>
+              <View style={styles.rowLeft} themeColorType="card">
+                <Ionicons name="document-text-outline" size={22} color={colors.text} />
+                <Text style={styles.rowTitle}>Terms of Service</Text>
+              </View>
+              <Ionicons 
+                name={expandedSection === "tos" ? "chevron-down" : "chevron-forward"} 
+                size={18} 
+                color={colors.text + '60'} 
+              />
+            </Pressable>
+
+            {expandedSection === "tos" && (
+              <View style={styles.expandedContent} themeColorType="card">
+                <ScrollView 
+                  nestedScrollEnabled={true} 
+                  style={[styles.scrollableContentContainer, { backgroundColor: colors.card + '50' }]}
+                >
+                  <Text style={[styles.contentSectionHeader, { color: colors.text }]}>1. Acceptance of Terms</Text>
+                  <Text style={[styles.contentBodyText, { color: colors.text + 'b3' }]}>
+                    By creating an account or using ReceiptLens, you agree to comply with and be bound by these Terms of Service. If you disagree with any part of these terms, please terminate your account immediately.
+                  </Text>
+
+                  <Text style={[styles.contentSectionHeader, { color: colors.text }]}>2. Purpose & OCR Limitations</Text>
+                  <Text style={[styles.contentBodyText, { color: colors.text + 'b3' }]}>
+                    ReceiptLens utilizes machine parsing and Optical Character Recognition (OCR) to read financial data from image assets. We do not guarantee 100% data correctness or processing precision. Users should always manually double-check digitized spreadsheet parameters.
+                  </Text>
+
+                  <Text style={[styles.contentSectionHeader, { color: colors.text }]}>3. Data Storage & Ownership</Text>
+                  <Text style={[styles.contentBodyText, { color: colors.text + 'b3' }]}>
+                    Your profile data, digital image attachments, and parsed transaction objects are managed securely through Supabase instances. You retain absolute ownership of your structural logs and retain the full right to pull or completely purge them at any given time.
+                  </Text>
+
+                  <Text style={[styles.contentSectionHeader, { color: colors.text }]}>4. Limitations of Liability</Text>
+                  <Text style={[styles.contentBodyText, { color: colors.text + 'b3' }]}>
+                    ReceiptLens is provided on an "as-is" structural basis. We are not legally accountable for unexpected ledger calculation issues, device file system export issues, database storage limits, or temporal infrastructure outages.
+                  </Text>
+                </ScrollView>
+              </View>
+            )}
+          </View>
+
+          {/* 💡 7. Help Center / FAQ Row (Newly Added) */}
+          <View style={[styles.rowWrapper, { borderBottomWidth: 0 }]} themeColorType="card" >
+            <Pressable style={styles.menuRow} onPress={() => toggleSection("help")}>
+              <View style={styles.rowLeft} themeColorType="card">
+                <Ionicons name="help-circle-outline" size={22} color={colors.text} />
+                <Text style={styles.rowTitle}>Help Center</Text>
+              </View>
+              <Ionicons 
+                name={expandedSection === "help" ? "chevron-down" : "chevron-forward"} 
+                size={18} 
+                color={colors.text + '60'} 
+              />
+            </Pressable>
+
+            {expandedSection === "help" && (
+              <View style={styles.expandedContent} themeColorType="card">
+                <ScrollView 
+                  nestedScrollEnabled={true} 
+                  style={[styles.scrollableContentContainer, { backgroundColor: colors.card + '50' }]}
+                >
+                  <Text style={[styles.contentSectionHeader, { color: colors.text }]}>Q: Why is my scanned receipt amount wrong?</Text>
+                  <Text style={[styles.contentBodyText, { color: colors.text + 'b3' }]}>
+                    OCR processing depends closely on image quality. Make sure your receipt lies completely flat, faces bright overhead lighting, and that all text/numerical totals reside squarely inside the camera lens boundaries when pressing capture.
+                  </Text>
+
+                  <Text style={[styles.contentSectionHeader, { color: colors.text }]}>Q: Where are my uploaded images hosted?</Text>
+                  <Text style={[styles.contentBodyText, { color: colors.text + 'b3' }]}>
+                    All selected file attachments and profile avatars are transferred and stored safely using isolated storage buckets maintained via automated Supabase security configurations.
+                  </Text>
+
+                  <Text style={[styles.contentSectionHeader, { color: colors.text }]}>Q: How do I backup my transaction history logs?</Text>
+                  <Text style={[styles.contentBodyText, { color: colors.text + 'b3' }]}>
+                    You can easily generate an offline local backup at any time by selecting the "Export Data" accordion feature option directly above. This compiles all stored transaction listings into an open, structured spreadsheet CSV file format.
+                  </Text>
+
+                  <Text style={[styles.contentSectionHeader, { color: colors.text }]}>Q: Still need assistance?</Text>
+                  <Text style={[styles.contentBodyText, { color: colors.text + 'b3' }]}>
+                    If you run into database synchronization errors or app execution drops, feel free to report them directly to the dev team via your repository channel.
+                  </Text>
+                </ScrollView>
               </View>
             )}
           </View>
@@ -706,6 +792,22 @@ const styles = StyleSheet.create({
   aboutValue: {
     fontSize: 13,
     fontWeight: "600",
+  },
+  /* 💡 Unified style mappings for legal/info scroll views */
+  scrollableContentContainer: {
+    maxHeight: 180,
+    borderRadius: 12,
+    padding: 14,
+  },
+  contentSectionHeader: {
+    fontSize: 13,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  contentBodyText: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginBottom: 14,
   },
   logoutButton: {
     flexDirection: "row",
