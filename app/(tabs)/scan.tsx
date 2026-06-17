@@ -59,10 +59,10 @@ export default function ScanScreen() {
       });
 
       if (error) throw error;
-      if (!data) throw new Error("Wala kay nadawat nga data gikan sa AI.");
+      if (!data) throw new Error("You did not receive any data from the AI.");
       if (data.error) throw new Error(data.error);
 
-      console.log("Tinuod nga Data gikan sa Gemini:", data);
+      console.log("Real Data from Gemini:", data);
 
       // 2. I-save sa database ang TINUOD nga gi-extract sa AI (gikan sa data variable)
       const { error: insertError } = await supabase
@@ -90,7 +90,7 @@ export default function ScanScreen() {
       console.error("AI processing error:", error);
       
       // 🛠️ DEBUG ALERT: Atong kuhaon ang tinuod nga unod sa crash gikan sa Supabase Server
-      let serverErrorMessage = "Wala kabasa ang AI sa imong resibo.";
+      let serverErrorMessage = "The AI could not read your receipt.";
       
       if (error?.context?.message) {
         serverErrorMessage = error.context.message;
@@ -102,7 +102,7 @@ export default function ScanScreen() {
       
       Alert.alert(
         "Server Detail Error", 
-        `Kini ang tinuod nga rason sa crash:\n\n${serverErrorMessage}`
+        `This is the real reason for the crash:\n\n${serverErrorMessage}`
       );
     }
   };
