@@ -2,7 +2,7 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  Alert, // 1. Import Alert for user feedback
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,7 +12,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-// 2. Import your configured supabase client from your utils folder
 import { supabase } from "../../utils/supabase";
 
 export default function Login() {
@@ -20,34 +19,60 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   
-  // Track loading status to disable interaction during requests
   const [loading, setLoading] = useState(false);
   const [isPasswordSecure, setIsPasswordSecure] = useState(true);
 
-  // 3. Convert handleLogin to an asynchronous function hitting Supabase Auth
   const handleLogin = async () => {
     if (!email.trim() || !password) {
       Alert.alert("Error", "Please fill in all fields.");
       return;
     }
 
-    setLoading(true); // Turn button loading state ON
+    setLoading(true);
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password: password,
     });
 
-    setLoading(false); // Turn button loading state OFF
+    setLoading(false);
 
     if (error) {
       Alert.alert("Login Failed", error.message);
     } else {
       console.log("Logged in successfully. User ID:", data.user?.id);
-      
-      // 4. Redirect your user to your main layout or homepage path
-      // Replace '/(tabs)' with whatever your actual main home layout path is named
       router.replace("/home");
+    }
+  };
+
+  // --- NEW: Forgot Password Function ---
+  const handleForgotPassword = async () => {
+    const formattedEmail = email.trim();
+
+    if (!formattedEmail) {
+      Alert.alert(
+        "Email Required", 
+        "Please type your email address into the email field first, then tap 'Forgot Password?'."
+      );
+      return;
+    }
+
+    setLoading(true);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(formattedEmail, {
+      // Tells Supabase to send them to your deep link route
+      redirectTo: 'receiptlens://update-password', 
+    });
+
+    setLoading(false);
+
+    if (error) {
+      Alert.alert("Error", error.message);
+    } else {
+      Alert.alert(
+        "Reset Link Sent",
+        `A password reset link has been sent to ${formattedEmail}.`
+      );
     }
   };
 
@@ -66,7 +91,6 @@ export default function Login() {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         
-        {/* Header Section with matching styled nested text colors */}
         <View style={styles.headerContainer}>
           <Image
             source={require("../../assets/images/receipt.png")}
@@ -78,7 +102,6 @@ export default function Login() {
           <Text style={styles.welcomeSubtitle}>Snap, track, and manage your expenses instantly.</Text>
         </View>
 
-        {/* Form Inputs */}
         <View style={styles.formContainer}>
           <View>
             <Text style={styles.label}>Email</Text>
@@ -90,6 +113,7 @@ export default function Login() {
               keyboardType="email-address"
               autoCapitalize="none"
               style={styles.input}
+              editable={!loading} // Disable inputs during network operations
             />
           </View>
 
@@ -104,6 +128,7 @@ export default function Login() {
                 secureTextEntry={isPasswordSecure}
                 autoCapitalize="none"
                 style={styles.passwordInput}
+                editable={!loading}
               />
               <Pressable 
                 onPress={() => setIsPasswordSecure(!isPasswordSecure)}
@@ -121,9 +146,14 @@ export default function Login() {
             </View>
           </View>
 
+          {/* --- Updated Forgot Password Container --- */}
           <Pressable
-            onPress={() => console.log("Forgot password pressed")}
-            style={styles.forgotPasswordContainer}
+            onPress={handleForgotPassword}
+            disabled={loading}
+            style={({ pressed }) => [
+              styles.forgotPasswordContainer,
+              pressed && { opacity: 0.6 }
+            ]}
           >
             <Text style={styles.forgotPasswordText}>
               Forgot Password?
@@ -131,21 +161,19 @@ export default function Login() {
           </Pressable>
         </View>
 
-        {/* Main Log In Button updated with dynamic loading state */}
         <Pressable
           onPress={handleLogin}
-          disabled={loading} // Blocker to prevent double execution requests
+          disabled={loading}
           style={({ pressed }) => [
             styles.loginButton,
             (pressed || loading) && styles.loginButtonPressed,
           ]}
         >
           <Text style={styles.loginButtonText}>
-            {loading ? "Logging in..." : "Log In"}
+            {loading ? "Please wait..." : "Log In"}
           </Text>
         </Pressable>
 
-        {/* --- Social Login Section --- */}
         <View style={styles.dividerContainer}>
           <View style={styles.dividerLine} />
           <Text style={styles.dividerText}>Or continue with</Text>
@@ -153,9 +181,9 @@ export default function Login() {
         </View>
 
         <View style={styles.socialContainer}>
-          {/* Facebook Button */}
           <Pressable
             onPress={handleFacebookLogin}
+            disabled={loading}
             style={({ pressed }) => [
               styles.socialButton,
               pressed && styles.socialButtonPressed,
@@ -168,9 +196,9 @@ export default function Login() {
             <Text style={styles.socialButtonText}>Facebook</Text>
           </Pressable>
 
-          {/* Google / Gmail Button */}
           <Pressable
             onPress={handleGoogleLogin}
+            disabled={loading}
             style={({ pressed }) => [
               styles.socialButton,
               pressed && styles.socialButtonPressed,
@@ -184,12 +212,11 @@ export default function Login() {
           </Pressable>
         </View>
 
-        {/* Footer Link */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
             Don't have an account?
           </Text>
-          <Pressable onPress={() => router.replace("/signup")}>
+          <Pressable onPress={() => router.replace("/signup")} disabled={loading}>
             <Text style={styles.signUpText}>Sign Up</Text>
           </Pressable>
         </View>

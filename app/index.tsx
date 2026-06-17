@@ -8,7 +8,7 @@ export default function Index() {
   useEffect(() => {
     const timer = setTimeout(() => {
       router.replace("/login"); // Change to your login modal route
-    }, 5000); // 3 seconds
+    }, 4000); // 4 seconds
 
     return () => clearTimeout(timer);
   }, []);
