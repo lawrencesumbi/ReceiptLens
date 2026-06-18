@@ -61,7 +61,7 @@ export default function Login() {
 
     const { error } = await supabase.auth.resetPasswordForEmail(formattedEmail, {
       // Tells Supabase to send them to your deep link route
-      redirectTo: 'receiptlens://update-password', 
+      redirectTo: 'exp://10.253.21.160:8081/--/update-password',
     });
 
     setLoading(false);
