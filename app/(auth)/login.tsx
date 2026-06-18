@@ -14,6 +14,14 @@ import {
 } from "react-native";
 import { supabase } from "../../utils/supabase";
 
+import * as WebBrowser from 'expo-web-browser';
+
+
+import * as AuthSession from 'expo-auth-session';
+
+// Ibutang ni sa gawas sa imong function
+WebBrowser.maybeCompleteAuthSession();
+
 export default function Login() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -80,9 +88,41 @@ export default function Login() {
     console.log("Facebook login pressed");
   };
 
-  const handleGoogleLogin = () => {
-    console.log("Google/Gmail login pressed");
-  };
+  const handleGoogleLogin = async () => {
+  setLoading(true);
+
+  // 1. Pag-generate og auth URL gikan sa Supabase
+  // Ang 'redirectTo' diri kinahanglan nga compatible sa Expo Go
+  const redirectUri = AuthSession.makeRedirectUri();
+  
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: redirectUri,
+      skipBrowserRedirect: true, // Importante ni!
+    },
+  });
+
+  if (error) {
+    Alert.alert("Error", error.message);
+    setLoading(false);
+    return;
+  }
+
+  // 2. I-open ang browser gamit ang openAuthSessionAsync
+  // Kini nga function ang nag-bridge sa browser ug sa Expo Go
+  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
+
+  // 3. I-check kung malampuson ang login
+  if (result.type === 'success') {
+    // Pag-abot diri, ang session sa Supabase kay active na
+    console.log("Login success! Session updated.");
+    // Ayaw na pag-redirect manually, ang onAuthStateChange sa imong 
+    // App.js/Layout.tsx maoy mopadala sa user sa home screen.
+  }
+  
+  setLoading(false);
+};
 
   return (
     <KeyboardAvoidingView
