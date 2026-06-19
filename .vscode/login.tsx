@@ -53,39 +53,44 @@ export default function Login() {
     }
   };
 
-const handleForgotPassword = async () => {
-  if (!email.trim()) {
+  // --- NEW: Forgot Password Function ---
+  const handleForgotPassword = async () => {
+  if (!email) {
     Alert.alert("Error", "Please enter your email address first.");
     return;
   }
 
   setLoading(true);
+  
+  // Magpadala og 6-digit OTP code para sa password recovery
+  const { error } = await supabase.auth.signInWithOtp({
+    email: email.trim(),
+    options: {
+      shouldCreateUser: false, // Dili mag-create og bag-ong user
+    },
+  });
 
-  try {
-    // This explicitly tells Supabase to start a Password Reset flow
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+  setLoading(false);
 
-    if (error) throw error;
-
+  if (error) {
+    Alert.alert("Error", error.message);
+  } else {
     Alert.alert(
-      "Code Sent Successfully!", 
-      "Please check your email inbox for the 6-digit verification code.",
+      "Reset Code Sent", 
+      "Check your email for the 6-digit verification code.",
       [
         {
           text: "OK",
           onPress: () => {
+            // I-pass ang email ngadto sa update-password screen para didto i-verify
             router.push({
-              pathname: "/(auth)/update-password",
+              pathname: "/update-password",
               params: { email: email.trim() }
             });
           }
         }
       ]
     );
-  } catch (error: any) {
-    Alert.alert("Error", error.message || "Failed to send verification code.");
-  } finally {
-    setLoading(false);
   }
 };
 
