@@ -17,13 +17,13 @@ export default function UpdatePassword() {
   const correctOtp = (params.correctOtp as string) || "";
 
 const handleVerifyAndUpdate = async () => {
-  if (!userInputToken || userInputToken.length < 6) {
-    Alert.alert("Error", "Please enter a valid 6-digit verification code.");
+  if (!userInputToken || userInputToken.length < 8) {
+    Alert.alert("Error", "Please enter a valid 8-digit verification code.");
     return;
   }
 
-  if (newPassword.length < 6) {
-    Alert.alert("Error", "Password must be at least 6 characters long.");
+  if (newPassword.length < 8) {
+    Alert.alert("Error", "Password must be at least 8 characters long.");
     return;
   }
 
@@ -78,13 +78,13 @@ const handleVerifyAndUpdate = async () => {
           <View>
             <Text style={styles.label}>Recovery Code</Text>
             <TextInput
-              placeholder="Enter 6-digit code"
+              placeholder="Enter 8-digit code"
               placeholderTextColor="#aaa"
               keyboardType="number-pad"
               value={userInputToken}
               onChangeText={setUserInputToken}
               style={styles.input}
-              maxLength={6}
+              maxLength={8}
               editable={!loading}
             />
           </View>

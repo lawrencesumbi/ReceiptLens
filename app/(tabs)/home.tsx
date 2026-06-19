@@ -106,7 +106,7 @@ export default function HomeScreen() {
         <View style={styles.headerRow}>
           <View>
             <Text style={[styles.subGreeting, { color: colors.text + "80" }]}>Welcome Back,</Text>
-            <Text style={[styles.mainGreeting, { color: colors.text }]}>{userName}! 👋</Text>
+            <Text style={[styles.mainGreeting, { color: colors.text }]}>{userName}!</Text>
           </View>
           
           <Pressable style={styles.profileBadge} onPress={() => router.push("/profile")}>
