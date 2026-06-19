@@ -19,6 +19,8 @@ import * as WebBrowser from 'expo-web-browser';
 
 import * as AuthSession from 'expo-auth-session';
 
+import * as QueryParams from 'expo-auth-session/build/QueryParams';
+
 // Ibutang ni sa gawas sa imong function
 WebBrowser.maybeCompleteAuthSession();
 
@@ -93,39 +95,40 @@ const handleForgotPassword = async () => {
     console.log("Facebook login pressed");
   };
 
-  const handleGoogleLogin = async () => {
+const handleGoogleLogin = async () => {
   setLoading(true);
+  const redirectUri = AuthSession.makeRedirectUri({
+  scheme: 'receiptlens', // This MUST match the "scheme" in app.json
+});
 
-  // 1. Pag-generate og auth URL gikan sa Supabase
-  // Ang 'redirectTo' diri kinahanglan nga compatible sa Expo Go
-  const redirectUri = AuthSession.makeRedirectUri();
-  
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: {
-      redirectTo: redirectUri,
-      skipBrowserRedirect: true, // Importante ni!
-    },
+    options: { redirectTo: redirectUri, skipBrowserRedirect: true },
   });
 
-  if (error) {
-    Alert.alert("Error", error.message);
-    setLoading(false);
-    return;
+  if (error) { Alert.alert("Error", error.message); setLoading(false); return; }
+
+  const result = await WebBrowser.openAuthSessionAsync(
+  data.url, 
+  redirectUri,
+  {
+    // These options help prevent the "Failed to launch" error
+    showInRecents: true,
   }
+);
 
-  // 2. I-open ang browser gamit ang openAuthSessionAsync
-  // Kini nga function ang nag-bridge sa browser ug sa Expo Go
-  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
-
-  // 3. I-check kung malampuson ang login
   if (result.type === 'success') {
-    // Pag-abot diri, ang session sa Supabase kay active na
-    console.log("Login success! Session updated.");
-    // Ayaw na pag-redirect manually, ang onAuthStateChange sa imong 
-    // App.js/Layout.tsx maoy mopadala sa user sa home screen.
+    const { url } = result;
+    const { params } = QueryParams.getQueryParams(url);
+    const { access_token, refresh_token } = params;
+
+    // This is the trigger that saves the session to AsyncStorage
+    const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+    
+    if (error) Alert.alert("Auth Error", error.message);
+    // No need to redirect manually! Your _layout.tsx listener will see the 
+    // session update and redirect automatically.
   }
-  
   setLoading(false);
 };
 
