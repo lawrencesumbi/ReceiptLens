@@ -1,5 +1,8 @@
+import * as AuthSession from 'expo-auth-session';
+import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
+import * as WebBrowser from 'expo-web-browser';
 import React, { useState } from "react";
 import {
   Alert,
@@ -13,13 +16,6 @@ import {
   View,
 } from "react-native";
 import { supabase } from "../../utils/supabase";
-
-import * as WebBrowser from 'expo-web-browser';
-
-
-import * as AuthSession from 'expo-auth-session';
-
-import * as QueryParams from 'expo-auth-session/build/QueryParams';
 
 // Ibutang ni sa gawas sa imong function
 WebBrowser.maybeCompleteAuthSession();

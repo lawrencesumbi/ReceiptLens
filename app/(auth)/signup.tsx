@@ -1,5 +1,8 @@
+import * as AuthSession from 'expo-auth-session';
+import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
+import * as WebBrowser from 'expo-web-browser';
 import React, { useState } from "react";
 import {
   Alert,
@@ -13,6 +16,9 @@ import {
   View,
 } from "react-native";
 import { supabase } from "../../utils/supabase";
+
+// Ibutang ni sa gawas sa imong function
+WebBrowser.maybeCompleteAuthSession();
 
 export default function Signup() {
   const router = useRouter();
@@ -31,12 +37,87 @@ export default function Signup() {
   const [isConfirmPasswordSecure, setIsConfirmPasswordSecure] = useState(true);
 
   // 👇 ADD THESE TWO MISSING FUNCTIONS HERE 👇
-  const handleFacebookLogin = () => {
-    console.log("Facebook registration pressed");
-  };
-
-  const handleGoogleLogin = () => {
-    console.log("Google registration pressed");
+  const handleFacebookLogin = async () => {
+      setLoading(true);
+      const redirectUri = AuthSession.makeRedirectUri({
+        scheme: 'receiptlens', // Matches your app.json scheme
+      });
+  
+      // 1. Request the OAuth URL from Supabase for Facebook
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+        options: { 
+          redirectTo: redirectUri, 
+          skipBrowserRedirect: true 
+        },
+      });
+  
+      if (error) { 
+        Alert.alert("Error", error.message); 
+        setLoading(false); 
+        return; 
+      }
+  
+      // 2. Open the Web Browser to let the user authenticate
+      const result = await WebBrowser.openAuthSessionAsync(
+        data.url, 
+        redirectUri,
+        { showInRecents: true }
+      );
+  
+      // 3. Parse the tokens back if login succeeds
+      if (result.type === 'success') {
+        const { url } = result;
+        const { params } = QueryParams.getQueryParams(url);
+        const { access_token, refresh_token } = params;
+  
+        // 4. Establish session in Supabase storage
+        const { error: sessionError } = await supabase.auth.setSession({ 
+          access_token, 
+          refresh_token 
+        });
+        
+        if (sessionError) Alert.alert("Auth Error", sessionError.message);
+      }
+      
+      setLoading(false);
+    };
+  
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    const redirectUri = AuthSession.makeRedirectUri({
+    scheme: 'receiptlens', // This MUST match the "scheme" in app.json
+  });
+  
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: redirectUri, skipBrowserRedirect: true },
+    });
+  
+    if (error) { Alert.alert("Error", error.message); setLoading(false); return; }
+  
+    const result = await WebBrowser.openAuthSessionAsync(
+    data.url, 
+    redirectUri,
+    {
+      // These options help prevent the "Failed to launch" error
+      showInRecents: true,
+    }
+  );
+  
+    if (result.type === 'success') {
+      const { url } = result;
+      const { params } = QueryParams.getQueryParams(url);
+      const { access_token, refresh_token } = params;
+  
+      // This is the trigger that saves the session to AsyncStorage
+      const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+      
+      if (error) Alert.alert("Auth Error", error.message);
+      // No need to redirect manually! Your _layout.tsx listener will see the 
+      // session update and redirect automatically.
+    }
+    setLoading(false);
   };
 
   const handleSignup = async () => {
@@ -74,7 +155,7 @@ export default function Signup() {
     } else {
       Alert.alert(
         "Account Created!",
-        "Registration successful. You can now log in!",
+        "Registration successful. Please check your email to verify your account before logging in.",
         [
           {
             text: "OK",

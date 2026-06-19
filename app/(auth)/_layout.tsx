@@ -28,6 +28,12 @@ export default function AuthLayout() {
           headerShown: false // Keeps your login screen full-screen without a top bar
         }} 
       />
+      <Stack.Screen 
+        name="update-password" 
+        options={{ 
+          headerShown: false // Keeps your login screen full-screen without a top bar
+        }} 
+      />
     </Stack>
   );
 }
